@@ -116,7 +116,7 @@ volatile uint64_t checkStateMicros; // Отметка micros для вычисл
 volatile uint32_t checkStateDurationInMicros = 1000; // Переменная для вывода длительности выполнения процедуры проверки изменения состояния checkState()
 uint8_t WEBState; // Состояние, установленное через WEB-интерфейс
 volatile bool isStateChanged = false; // Индикатор изменения состояния
-volatile bool StateWasChanged = false;
+//volatile bool StateWasChanged = false;
 
 // Для инициализации пинов при первом loop'е, чтобы  иметь возможность засечь bootloop
 bool runOnce = true;
@@ -155,7 +155,7 @@ void ARDUINO_ISR_ATTR checkButtonState() { // Обработчик прерыв�
   checkStateMicros = micros();
   isStateChanged = currentState != checkState(); // Фиксируем факт изменения состояния (если таковой имеет место)
   digitalWrite(SOUND_INDICATION, !isStateChanged); // В целях отладки: включаем звуковой сигнал, чтобы засечь, а было ли прерывание
-  StateWasChanged = isStateChanged;
+  //StateWasChanged = isStateChanged;
   checkStateDurationInMicros = 1000;
   lastStateChangeMillis = millis(); // чтобы засечь, давно ли последний раз менялось состояние (нет ли дребезга или залипания)
 }
