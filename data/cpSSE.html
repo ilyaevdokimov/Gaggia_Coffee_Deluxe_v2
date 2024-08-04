@@ -1,0 +1,108 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<meta charset='UTF-8'>
+	<title>Кофеварка SSE - панель управления</title>
+	<meta name='viewport' content='width=device-width, initial-scale=1'>
+	<link rel='stylesheet' href="s1.css" />
+</head>
+<body>
+	<details>
+		<summary>Кофеварка SSE</summary>
+	<ul>
+		<li>NTC: <span id='ntc'>?</span></li>
+		<li>БОЙЛЕР: <span id='tcB'>?</span></li>	
+		<li>ГРУППА: <span id='tcG'>?</span></li>
+		<li>PT100: <span id='pt100'>?</span></li>
+		<li>УРОВЕНЬ ВОДЫ: <span id='waterLevel'>?</span></li>
+		<li>ВРЕМЯ ПРОЛИВА: <span id='passTime'>?</span></li>
+		<li>РАСХОД: <span id='waterStreamValue'>?</span></li>
+		<li>РЕЖИМ: <span id='currentState'>?</span></li>
+		<li>ПАМЯТЬ: <span id='freeValue'>?</span></li>
+		<li>ВЕС: <span id='weight'>?</span></li>
+		<li>БОЕВОЙ: <span id='livePass'>?</span></li>
+	</ul>
+	</details>
+	<div class='content'>
+		<div class='cards'>
+			<div class='card'>
+				<p>Бойлер/Группа,&deg;C</p>
+				<span id='temp1'>...</span>/<span id='temp2'>...</span>
+			</div>
+			<div class='card'>
+				<p>Боевой</p>
+				<label class='switch'>
+					<input type='checkbox' onchange='toggleCheckbox(this)' id='btnLivePass'>
+					<span class='slider'></span>
+				</label>
+			</div>
+			<div class='card'>
+				<p>Вес, г</p>
+				<span id='weight1'>...</span>
+			</div>
+			<div class='card'>
+				<p>Сброс</p>
+				<label class='switch'>
+					<input type='checkbox' onchange='toggleCheckbox(this)' id='btnDummyPass'>
+					<span class='slider'></span>
+				</label>
+			</div>
+			<div class='card'>
+				<p>Время, с</p>
+				<span id='passTime1'>...</span>
+			</div>
+			<div class='card'>
+				<p>Пар</p>
+				<label class='switch'>
+					<input type='checkbox' onchange='toggleCheckbox(this)' id='btnSteam'>
+					<span class='slider'></span>
+				</label>
+			</div>
+			<div class='card'>
+				<span><a href="/">Стоп</a></span>
+			</div>
+			<div class='card'>
+				<span><a href='stngsSSE.html'>Настройки</a></span>
+			</div>
+		</div>
+	</div>
+<script>
+if (!!window.EventSource) {
+ var src = new EventSource('/events');
+ src.addEventListener('values', function(e) {
+  var res = String(e.data).split('¿');
+  setVal('ntc', res[0]);
+  setVal('tcG', res[1]);
+  setVal('temp2', res[1]);
+  setVal('waterLevel', res[2]);
+  setVal('currentState', res[3]);
+  setVal('passTime', res[4]);
+  setVal('passTime1', res[4]);
+  setVal('waterStreamValue', res[5]);
+  setVal('freeValue', res[6]);
+  setVal('tcB', res[7]);
+  setVal('temp1', res[7]);
+  setVal('pt100', res[8]);
+  setVal('weight', res[9]);
+  setVal('weight1', res[9]);
+  setVal('livePass', res[10]);
+ }, false); 
+}
+
+function setVal(id, val) {
+  document.getElementById(id).innerHTML = val;
+}
+
+function toggleCheckbox(element) {
+  var xhr = new XMLHttpRequest();
+  const col = document.getElementsByTagName('input');
+  for (let i = 0; i < col.length; i++) {
+    col[i].disabled = element.checked;
+  }
+  document.getElementById(element.id).disabled = false;
+  xhr.open('GET', '/updatedata?output='+element.id+'&state='+element.checked, true);
+  xhr.send();
+}
+</script>
+</body>
+</html>

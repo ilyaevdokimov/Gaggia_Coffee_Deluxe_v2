@@ -1,0 +1,288 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset='UTF-8'>
+  <title>Кофеварка SSE - Настройки</title>
+  <meta name='viewport' content='width=device-width, initial-scale=1'>
+  <link rel='stylesheet' href='s1.css'>
+</head>
+<body onload="adjustControls()">
+  <details>
+	<summary>Кофеварка SSE</summary>
+  </details>
+  <div class='content'>
+	<h1>Настройки</h1>
+	<fieldset>
+    <legend>Общие</legend>
+	<p>
+	<input type='checkbox' id='chkAutoPoweringOn' %P6%>
+	<label for='chkAutoPoweringOn'>Автоматически начинать нагрев при включении</label>
+	</p>
+	<p>
+	<label for='espressoTemperatureValue'>Температура бойлера для эспрессо:</label>
+	<input type='range' id='espressoTemperatureValue' min='100' max='120' step='1' value='%P1%' list='espressoTemperatureOptions' onchange='redraw(this,"selectedEspressoTValue")'>
+	<span id='selectedEspressoTValue'>%P1%</span><span>&deg;C</span></p>
+	<datalist id='espressoTemperatureOptions'>
+		<option value='100'>100</option>
+		<option value='101'>101</option>
+		<option value='102'>102</option>
+		<option value='103'>103</option>
+		<option value='104'>104</option>
+		<option value='105'>105</option>
+		<option value='106'>106</option>
+		<option value='107'>107</option>
+		<option value='108'>108</option>
+		<option value='109'>109</option>
+		<option value='110'>110</option>
+		<option value='111'>111</option>
+		<option value='112'>112</option>
+		<option value='113'>113</option>
+		<option value='114'>114</option>
+		<option value='115'>115</option>
+		<option value='116'>116</option>
+		<option value='117'>117</option>
+		<option value='118'>118</option>
+		<option value='119'>119</option>
+		<option value='120'>120</option>
+	</datalist>
+	<p>
+	<input type='checkbox' %P5C% onchange='toggleTargetWeight(this)' id='chkTWtoggler'>
+	<label for='targetWeight'>Пролив до достижения веса:</label>
+	<input type='text' id='targetWeight' value='%P5%' onkeyup='validateMe(this)'>
+	<span>грамм</span></p>
+	</p>
+	<p>
+	<label for='steamTemperatureValue'>Температура бойлера для пара:</label>
+	<input type='range' id='steamTemperatureValue' min='120' max='145' step='5' value='%P2%' list='steamTemperatureOptions' onchange='redraw(this,"selectedSteamTValue")'>
+	<span id='selectedSteamTValue'>%P2%</span><span>&deg;C</span></p>
+	<datalist id='steamTemperatureOptions'>
+		<option value='120'>120</option>
+		<option value='125'>125</option>
+		<option value='130'>130</option>
+		<option value='135'>135</option>
+		<option value='140'>140</option>
+		<option value='145'>145</option>
+	</datalist>
+	<p>
+	<label for='valveTimeValue'>Продолжительность сброса давления:</label>
+	<input type='range' id='valveTimeValue' min='1' max='9' step='1' value='%P3%' list='valveTimeOptions' onchange='redraw(this,"selectedValveTValue")'>
+	<span id='selectedValveTValue'>%P3%</span><span> секунд</span></p>
+	<datalist id='valveTimeOptions'>
+		<option value='1'>1</option>
+		<option value='2'>2</option>
+		<option value='3'>3</option>
+		<option value='4'>4</option>
+		<option value='5'>5</option>
+		<option value='6'>6</option>
+		<option value='7'>7</option>
+		<option value='8'>8</option>
+		<option value='9'>9</option>
+	</datalist>
+	<p>
+	<label for='valveTimeValue'>Таймаут авто-отключения нагрева:</label>
+	<input type='range' id='autoOffTimeValue' min='10' max='90' step='10' value='%P4%' list='autoOffTimeOptions' oninput='redraw(this,"selectedAutoOffTValue")'>
+	<span id='selectedAutoOffTValue'>%P4%</span><span> минут</span></p>
+	<datalist id='autoOffTimeOptions'>
+		<option value='10'>10</option>
+		<option value='20'>20</option>
+		<option value='30'>30</option>
+		<option value='40'>40</option>
+		<option value='50'>50</option>
+		<option value='60'>60</option>
+		<option value='70'>70</option>
+		<option value='80'>80</option>
+		<option value='90'>90</option>
+	</datalist>
+	</fieldset>
+	<fieldset>
+    <legend>WiFi</legend>
+	<p>
+	<label for='AP_SSID'>Имя точки доступа:</label>
+	<input type='text' id='AP_SSID' minlength='2' maxlength='15' required value='%P7%'></p>
+	<p>
+	<label for='AP_Password'>Пароль точки доступа:</label>
+	<input type='password' id='AP_Password' minlength='8' maxlength='15' value='%P8%' required></p>
+	<ul id='knownNetworks'>Подключение к сетям <span id='addWiFi'>+</span>
+	%WiFiNetworks%
+	</ul>
+	</fieldset>
+	<div class='cards'>
+		<div class='card'>
+			<span><a href='javascript:sendData()' id='btnOK'>OK</a></span>
+		</div>
+		<div class='card'>
+			<span><a href='javascript:history.back()' id='btnCancel'>Отмена</a></span>
+		</div>
+	</div>
+<dialog id='editWiFi'>
+  <div id='modal-box'>
+  <h2>Реквизиты WiFi</h2>
+    <p>
+	<label for='modal_AP_SSID'>Имя сети:</label>
+	<input type='text' id='modal_AP_SSID' minlength='2' maxlength='15' required>
+	</p>
+	<p>
+	<label for='modal_AP_Password'>Пароль:&nbsp;&nbsp;&nbsp;</label>
+	<input type='password' id='modal_AP_Password' minlength='8' maxlength='15' required value='%P8%'>
+	</p>
+    <button id='ok-modal-btn'>OK</button>
+	<button id='cancel-modal-btn'>Отмена</button>
+  </div>
+</dialog>
+<dialog id='deleteWiFi'>
+  <div id='modal-box-2-delete'>
+	<h2>Удаление WiFi-сети</h2>
+    <p>
+	<label for='modal_AP_SSID_2_delete'>Удалить сеть</label>
+	<span id='modal_AP_SSID_2_delete'></span>?
+	</p>
+    <button id='ok-modal-btn-2-delete'>OK</button>
+	<button id='cancel-modal-btn-2-delete'>Отмена</button>
+  </div>  
+</dialog>
+	<script>
+const modal = document.getElementById('editWiFi');
+const modal2delete = document.getElementById('deleteWiFi');
+const modalBox = document.getElementById('modal-box');
+const modalBox2delete = document.getElementById('modal-box-2-delete');
+const WiFiul = document.getElementById('knownNetworks')
+const showModalBtn = document.getElementById('addWiFi');
+const choice = WiFiul.querySelectorAll('li');
+const spans = WiFiul.querySelectorAll('li > span');
+const closeModalBtnOK = document.getElementById('ok-modal-btn');
+const closeModalBtnOK2delete = document.getElementById('ok-modal-btn-2-delete');
+const closeModalBtnCancel = document.getElementById('cancel-modal-btn');
+const closeModalBtnCancel2delete = document.getElementById('cancel-modal-btn-2-delete');
+let isModalOpen = false;
+
+function adjustControls() {
+	document.getElementById('targetWeight').disabled=!document.getElementById('chkTWtoggler').checked;
+	
+	choice.forEach(choiceItem => {
+			choiceItem.addEventListener('click', (e) =>  {
+			document.getElementById('modal_AP_SSID').value=choiceItem.firstChild.textContent;
+			document.getElementById('modal_AP_Password').value='';
+			modal.showModal();
+			isModalOpen = true;
+			e.stopPropagation();
+		});
+    });
+	
+	spans.forEach(choiceItem => {
+			choiceItem.addEventListener('click', (e) =>  {
+			document.getElementById('modal_AP_SSID_2_delete').innerText=choiceItem.parentElement.firstChild.textContent;
+			modal2delete.showModal();
+			isModalOpen = true;
+			e.stopPropagation();
+		});
+    });
+	
+	showModalBtn.addEventListener('click', (e) => {
+		document.getElementById('modal_AP_SSID').value=''
+		document.getElementById('modal_AP_Password').value='';
+		modal.showModal();
+		isModalOpen = true;
+		e.stopPropagation();
+	});	
+	
+	closeModalBtnOK.addEventListener('click', () => {
+		var str='/updateWiFi?p1='+document.getElementById('modal_AP_SSID').value.trim()+'&p2='+document.getElementById('modal_AP_Password').value.trim();
+		var xhr = new XMLHttpRequest();
+		xhr.open('GET', str, false);
+		try {
+			xhr.send();
+			if (xhr.status != 200) alert(`Ошибка ${xhr.status}: ${xhr.statusText}`);
+			else window.location.reload();
+		}
+		catch(err) {
+			alert("Запрос не удался");
+		}
+		modal.close();
+		isModalOpen = false;
+		e.stopPropagation();
+	});
+
+	closeModalBtnOK2delete.addEventListener('click', () => {
+		var str='/deleteWiFi?p1='+document.getElementById('modal_AP_SSID_2_delete').innerText;
+		var xhr = new XMLHttpRequest();
+		xhr.open('GET', str, false);
+		try {
+			xhr.send();
+			if (xhr.status != 200) alert(`Ошибка ${xhr.status}: ${xhr.statusText}`);
+			else window.location.reload(); //alert('WiFi-сеть '+xhr.response+' была успешно удалена');
+		}
+		catch(err) {
+			alert("Запрос не удался");
+		}
+		modal2delete.close();
+		isModalOpen = false;
+		e.stopPropagation();
+	});
+	
+	closeModalBtnCancel.addEventListener('click', () => {
+		modal.close();
+		isModalOpen = false;
+		e.stopPropagation();
+	});
+
+	closeModalBtnCancel2delete.addEventListener('click', () => {
+		modal2delete.close();
+		isModalOpen = false;
+		e.stopPropagation();
+	});
+	
+	document.addEventListener('click', (e) => {
+		if (isModalOpen) {
+			if (!modalBox.contains(e.target)) modal.close();
+			if (!modalBox2delete.contains(e.target)) modal2delete.close();
+			isModalOpen = false;
+		}
+	});
+}
+
+function sendData() {
+  var str='/updatesettings?p1='+document.getElementById('espressoTemperatureValue').value;
+  str+='&p2='+document.getElementById('steamTemperatureValue').value;
+  str+='&p3='+document.getElementById('valveTimeValue').value;
+  str+='&p4='+document.getElementById('autoOffTimeValue').value;
+  if(chkTWtoggler.checked) {
+	var wgth = parseFloat(document.getElementById('targetWeight').value.trim());
+	if(typeof wgth == 'number' && !isNaN(wgth)) {
+		if(wgth != 0) {
+			if(wgth < 18) wgth = 18;
+			if(wgth > 60) wgth = 60;
+		}
+		str+='&p5='+wgth;
+	}
+	else str+='&p5=0';
+  }
+  else str+='&p5=0';
+  if(document.getElementById('chkAutoPoweringOn').checked) str+='&p6=1';
+  else str+='&p6=0';
+  str+='&p7='+document.getElementById('AP_SSID').value.trim();
+  str+='&p8='+document.getElementById('AP_Password').value.trim();
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', str, true);
+  xhr.send();
+  history.back();
+}
+
+function redraw(element,spanId) {
+	document.getElementById(spanId).innerHTML=element.value;
+}
+
+function toggleTargetWeight(element) {
+	document.getElementById('targetWeight').disabled=!element.checked;
+	document.getElementById('targetWeight').value=0;
+}
+
+function validateMe(element) {
+	element.value = element.value.trim(); 
+	if(!element.value.match(/^[0-9]+(\.[0-9]*)*$/) && element.value.length > 0) {
+		 element.value=element.value.replace(/\D/, '');
+	}
+	if(parseFloat(element.value) > 60) element.value='60';
+}
+	</script>
+</body>
+</html>

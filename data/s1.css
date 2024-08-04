@@ -1,0 +1,29 @@
+html{font-family:Arial;display:inline-block;text-align:center}
+body{margin:0}
+details{overflow:hidden;background-color:#00a6ed;color:white}
+summary{padding:10px 0;font-size:2.4rem}
+details ul{max-width:310px;margin:12px auto;text-align:left}
+.content{padding:20px}
+.card{box-shadow:2px 2px 12px 1px rgba(140,140,140,.5);font-size:2.4rem}
+.card p{margin:8px 8px 0 8px;font-size:1.2rem}
+.card span{display:inline-block;padding:8px 0}
+.card a{display:inline-block;padding:16px 0;text-decoration:none;color:#000}
+.cards{max-width: 800px;margin:0 auto;display:grid;grid-gap:1rem;grid-template-columns:repeat(2, 1fr);grid-auto-rows:100px}
+.switch{position:relative;display:inline-block;width:90px;height:48px;margin:8px 0}
+.switchinput{display:none;background-color:red}
+.slider{position:absolute;top:0;left:0;right:0;bottom:0;margin:0;padd:0;background-color:#ccc;border-radius: 6px}
+.slider:before{position:absolute;content:"";height:37px;width:39px;left:6px;bottom:6px;background-color:#fff;-webkit-transition:.4s;transition:.4s;border-radius:3px}
+input:checked+.slider{background-color:#b30000}
+input:checked+.slider:before{-webkit-transform:translateX(38px);-ms-transform:translateX(38px);transform:translateX(38px)}
+fieldset{margin:0 20px 30px 20px;border:none;box-shadow:2px 2px 12px 1px rgba(140,140,140,.5);}
+fieldset legend{margin-bottom:.4rem;padding:1rem 3rem;box-shadow:2px 2px 12px 1px rgba(140,140,140,.5);font-size:1.8rem;background-color:white}
+fieldset ul{margin:2rem 0}
+fieldset ul > span{display:inline-block;width:2.6rem;height:1.8rem;border-radius:50%;margin:0 0 0 1rem;padding-top:0.8rem;box-shadow:2px 2px 12px 1px rgba(140,140,140,.5);cursor:pointer;text-align:center}
+fieldset ul li{margin:2rem 2rem 0 0;padding:1.8rem;box-shadow:2px 2px 12px 1px rgba(140,140,140,.5);cursor:pointer;list-style:none;text-align:left;}
+.onAir{background-color:#00a6ed;color:white;}
+fieldset ul li span{float:right;margin-top:-0.8rem;padding-top:0.8rem;}
+fieldset ul li span::before {color:black;content:'X';float:right;width:2.6rem;height:1.8rem;text-align:center;margin-left:1rem;margin-top:-0.8rem;padding-top:.8rem;border-radius:50%;box-shadow:2px 2px 12px 1px rgba(140,140,140,.5);background-color:white;}
+dialog{border:none;box-shadow:2px 2px 12px 1px rgba(140,140,140,.5);}
+dialog input, fieldset p input[type='text'],fieldset p input[type='password']{border:none;box-shadow:inset 0 1px 5px 0 rgba(140,140,140,.5);font-size:1.2rem; padding:.5rem;margin:.6rem 1rem;width:9rem;}
+dialog button{border:none;width:8rem;height:3rem;background-color:none;box-shadow:2px 2px 12px 1px rgba(140,140,140,.5);margin:1rem 1rem;font-size:1.2rem}
+.modal-box{padding: 1rem}

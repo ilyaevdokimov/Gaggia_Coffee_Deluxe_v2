@@ -1,0 +1,60 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset='UTF-8'>
+  <title>Кофеварка SSE - старт</title>
+  <meta name='viewport' content='width=device-width, initial-scale=1'>
+  <link rel='stylesheet' href='s1.css' />
+</head>
+<body>
+  <details>
+  <summary>Кофеварка SSE - старт</summary>
+  <ul>
+	<li>NTC: <span id='ntc'>?</span></li>
+	<li>БОЙЛЕР: <span id='tcB'>?</span></li>	
+	<li>ГРУППА: <span id='tcG'>?</span></li>
+	<li>PT100: <span id='pt100'>?</span></li>
+	<li>УРОВЕНЬ ВОДЫ: <span id='waterLevel'>?</span></li>
+	<li>ВРЕМЯ ПРОЛИВА: <span id='passTime'>?</span></li>
+	<li>РАСХОД: <span id='waterStreamValue'>?</span></li>
+	<li>РЕЖИМ: <span id='currentState'>?</span></li>
+	<li>ПАМЯТЬ: <span id='freeValue'>?</span></li>
+	<li>ВЕС: <span id='weight'>?</span></li>
+	<li>БОЕВОЙ: <span id='livePass'>?</span></li>
+  </ul>
+  </details>
+  <div class='content'>
+    <div class='cards'>
+	<div class='card'>
+		<span><a href='cpSSE.html'>Старт</a></span>
+	</div>
+	<div class='card'>
+		<span><a href='stngsSSE.html'>Настройки</a></span>
+	</div>
+  </div>
+    </div>
+</body>
+<script>
+if (!!window.EventSource) {
+ var src = new EventSource('/events');
+ src.addEventListener('values', function(e) {
+  var res = String(e.data).split('¿');
+  setVal('ntc', res[0]);
+  setVal('tcG', res[1]);
+  setVal('waterLevel', res[2]);
+  setVal('currentState', res[3]);
+  setVal('passTime', res[4]);
+  setVal('waterStreamValue', res[5]);
+  setVal('freeValue', res[6]);
+  setVal('tcB', res[7]);
+  setVal('pt100', res[8]);
+  setVal('weight', res[9]);
+  setVal('livePass', res[10]);
+ }, false); 
+}
+
+function setVal(id, val) {
+  document.getElementById(id).innerHTML = val;
+}
+</script>
+</html>
