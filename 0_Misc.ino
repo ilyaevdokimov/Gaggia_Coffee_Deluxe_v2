@@ -115,15 +115,7 @@ uint8_t getWaterLevel(uint8_t counter) { // Определяет усреднё�
 }
 
 void makeSendString(String& s) {
-  String diagnosticString = String(checkStateDurationInMicros);
-  diagnosticString += " ";
-  //diagnosticString += millis() - lastStateChangeMillis > 5000 ? "?" : String(StateWasChanged);
-  diagnosticString += " P";
-  diagnosticString += String(digitalRead(PASS_BUTTON));
-  diagnosticString += " S";
-  diagnosticString += String(digitalRead(STEAM_BUTTON));
-  diagnosticString += " V";
-  diagnosticString += String(digitalRead(STEAM_VALVE_BUTTON));
+  String diagnosticString = "";
 
   s += String(temperature, 1); // Темпрература с датчика регулирования (сейчас это NTC-термистор) 0
   s += "¿";
