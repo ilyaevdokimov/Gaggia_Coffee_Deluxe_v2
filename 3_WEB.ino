@@ -21,9 +21,6 @@ void startWEBServer() { // Запуск HTTP-сервера с обработч�
   });
 
   server.serveStatic("/s1.css", LittleFS, "/s1.css");
-  
-  // Временно!!!
-  //server.serveStatic("/knownNetworks.txt", LittleFS, "/knownNetworks.txt");
 
   server.serveStatic("/stngsSSE.html", LittleFS, "/stngsSSE.html").setTemplateProcessor(processor);
 
@@ -59,7 +56,9 @@ void startWEBServer() { // Запуск HTTP-сервера с обработч�
       controlValue = "No message sent";
     }
 
-    if (controlID == "btnValve") digitalWrite(PASS_VALVE, controlValue == "true");
+    if (controlID == "btnSteam") { // Пока непонятно, что тут можно сделать
+      
+    }
     else if (controlID == "btnDummyPass") {
       /*
         preferences.begin("gSettings", false);
@@ -69,7 +68,9 @@ void startWEBServer() { // Запуск HTTP-сервера с обработч�
         preferences.putString("P8", "MySecretString");
         preferences.end(); // Закрываем настройки
       */
-      scale.tare(); // Сбрасываем значение на весах
+    }
+    else if (controlID == "btnTare") {
+      scale.tare(1); // Сбрасываем значение на весах (1 раз, чтобы побыстрее)
     }
     else if (controlID == "btnLivePass") {
 
@@ -87,8 +88,6 @@ void startWEBServer() { // Запуск HTTP-сервера с обработч�
   if (isSoftAP) server.addHandler(new CaptiveRequestHandler()).setFilter(ON_AP_FILTER); // Обработчик действителен только в режиме AP
 
   server.on("/updatesettings", HTTP_GET, [] (AsyncWebServerRequest * request) { // Обновление параметров со страницы настроек
-    // /updatesettings?p1=112&p2=120&p3=9&p4=10
-
     preferences.begin("gSettings", false);
     // Получаем данные из GET-запроса <ESP_IP>/updatesettings?P1=<значение>&P2=<значение> и т.д.
     if (request->hasParam("p1")) { // Если в запросе на изменение был указан такой параметр...
@@ -193,7 +192,7 @@ void startWEBServer() { // Запуск HTTP-сервера с обработч�
               file.print(newSSID);
               file.print("\n");
             }
-            file.close(); // Не уверен, что это безопасно в случае, если файл не открылся
+            file.close();
           }
         }
         // Теперь обновляем настойки:
@@ -226,6 +225,6 @@ void startWEBServer() { // Запуск HTTP-сервера с обработч�
     }
   });
 
-  ElegantOTA.begin(&server);    // Start ElegantOTA
+  ElegantOTA.begin(&server); // Start ElegantOTA
   server.begin();
 }

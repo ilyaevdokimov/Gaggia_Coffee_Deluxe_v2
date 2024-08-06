@@ -1,8 +1,7 @@
 // Запуск WiFi
 void startWiFi() { // Запуск точки доступа Wi-Fi
   WiFi.hostname("GAGGIA_Coffee-" + String((uint32_t)(ESP.getEfuseMac() >> 32), HEX)); // Формируем имя хоста
-  //if(!tryAvailableNetworks()) makeSoftAP(); // Создаём собственную точку доступа только если соединиться с существующей не получилось (ИЛИ-ИЛИ)
-  // Иначе работаем в смешанном режиме (роутер + собственная точка доступа - И)
+  // Работаем в смешанном режиме (роутер + собственная точка доступа)
   WiFi.mode(WIFI_AP_STA);
   makeSoftAP();
   tryAvailableNetworks();
@@ -14,9 +13,6 @@ bool tryAvailableNetworks() {
   bool connectionResult = false;
 
   preferences.begin("knownNetworks", false);
-  //preferences.clear();
-  //preferences.putString("CWFN", "s67JqySl");
-
   // Прежде чем перебирать все доступные сети, попробуем подключиться к последней использованной
   if (preferences.isKey("LastUsedSSID")) {
     ssid = preferences.getString("LastUsedSSID"); // Берём имя последней использованной сети
