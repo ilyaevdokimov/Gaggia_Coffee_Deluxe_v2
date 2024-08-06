@@ -21,8 +21,9 @@ void startWEBServer() { // Запуск HTTP-сервера с обработч�
   });
 
   server.serveStatic("/s1.css", LittleFS, "/s1.css");
+  
   // Временно!!!
-  server.serveStatic("/knownNetworks.txt", LittleFS, "/knownNetworks.txt");
+  //server.serveStatic("/knownNetworks.txt", LittleFS, "/knownNetworks.txt");
 
   server.serveStatic("/stngsSSE.html", LittleFS, "/stngsSSE.html").setTemplateProcessor(processor);
 

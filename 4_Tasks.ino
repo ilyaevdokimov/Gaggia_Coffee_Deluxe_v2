@@ -1,43 +1,3 @@
-void RefreshControlPanel(void *pvParameters) { // Вывод в WEB-интерфейс обновлённых значений
-  uint8_t const espressoLowerTreshold = 90; // Нихний предел температуры группы для OK-сигнализации
-  uint8_t const espressoUpperTreshold = 105; // Верхний предел температуры группы для OK-сигнализации
-  uint8_t loopCounter = 0; // Счётчик для обслуживания буфера значений дальномера, изменяется в пределах 0 ... WATER_LEVEL_BUFFER_SIZE
-
-  while (1) {
-    uint8_t steamLowerTreshold = steamTemperature - 4; // Нижний предел температуры пара для индикации
-    uint8_t steamUpperTreshold = steamTemperature + 10; // Верхний предел температуры пара для индикации
-
-    // Инкрементируем служебные переменные:
-    if (currentState == Booster) { // Временные интервалы не точные, но для такой цели сойдёт
-      if (boosterTimer < BOOSTER_SWAP_TIMEOUT) boosterTimer += PAGE_REFRESH_INTERVAL;
-      else isPumpTimeOut = false;
-      if (boosterSwapTimer < BOOSTER_SWAP_INTERVAL) boosterSwapTimer += PAGE_REFRESH_INTERVAL;
-    }
-
-    if (waterLevel <= 0) changeState(); // При недостаточном уровне воды выключаем помпу и сигнализируем звуком и светом о низком уровне
-    else passTime = passTimeInMillis / 1000; // Если помпа работает, считаем время пролива
-
-    // Подготавливаем и отсылаем страничке значения с датчиков:
-    temperature = getNTCtemperature(); // Обновляем значение глобальной переменной, чтобы ПИД мог брать оттуда актуальные данные
-    boilerTemperature = kTCboiler.getTempInt(); // Температура бойлера, отображаемая в интерфейсе
-    groupTemperature = kTCgroup.getTempInt(); // Температура группы
-    waterLevel = getWaterLevel(loopCounter++); // Актуализируем уровень воды в танкере (это занимает порядка 15 мс):
-    if (loopCounter >= WATER_LEVEL_BUFFER_SIZE) loopCounter = 0; // Сбрасываем счётчик при переполнении
-    // Сигнализируем о попадании температуры в заданный диапазон при нахождении:
-    uint16_t targetTemperature = (boilerTemperature + groupTemperature) / 2; // Усреднённая температура бойлера и группы
-    // в режиме пара или бустера
-    if (currentState == Steam || currentState == Booster) isTemperatureReached = temperature > steamLowerTreshold && temperature < steamUpperTreshold;
-    // в режиме эспрессо
-    else if (currentState == Wait  || currentState == Pass  || currentState == SteamValve) isTemperatureReached = groupTemperature > espressoLowerTreshold && groupTemperature < espressoUpperTreshold;
-    // Формируем пакет данных для отправки на страницу по SSE
-    String ss;
-    //ss.reserve(50);
-    makeSendString(ss); // Пихаем все значения в одну строку через разделитель
-    events.send(ss.c_str(), "values", millis()); // Отправляем данные на страницы, подписанные на наше событие SSE
-    vTaskDelay(PAGE_REFRESH_INTERVAL);
-  }
-}
-
 void HeaterControl(void *pvParameters) { // Единая задача для управления всеми видами нагрева
   // Вспомогательные переменные ПИД-регулятора:
   uint64_t timeAtTemp;
@@ -122,7 +82,6 @@ void HeaterControl(void *pvParameters) { // Единая задача для у�
         vTaskDelay(1);
         isAutoOFFneeded = false; // Сбрасываем флаг необходимости автоотключения
       }
-      //vTaskDelay(PULSEWIDTH);
     }
     vTaskDelay(PULSEWIDTH);
   }

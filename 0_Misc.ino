@@ -46,8 +46,6 @@ void changeState() {
   timerWrite(autoOFFtimer, 0);  // Сброс таймера автоотключения
   digitalWrite(PUMP, LOW); // Переход из одного состояния в другое всегда должен происходить через отключение помпы. Новый режим включит её при необходимости
 
-  digitalWrite(SOUND_INDICATION, HIGH); // Отладка: выключаем звуковой сигнал, включённый в прерывании
-
   // Проверяем, был ли пролив боевым
   isLivePass = passTime > 13 && waterStreamValue > 0 && passTimeInMillis / waterStreamValue > PASS_VALVE_LIVE_TRESHOLD;
 
@@ -58,6 +56,10 @@ void changeState() {
     timerRestart(flashTimer); // Перезапускаем таймер сброса давления
     timerStart(flashTimer); // Запускаем таймер
     digitalWrite(PASS_VALVE, HIGH); // Открываем клапан. А закроет его обработчик прерывания тайммера
+
+    // Отладка!
+    digitalWrite(SOUND_INDICATION, LOW);
+    
   }
 
   // Пролив проверен, теперь можно запомнить новое состояние:
@@ -94,6 +96,41 @@ void changeState() {
     boosterTimer = 0;
     boosterSwapTimer = 0;
   }
+  digitalWrite(SOUND_INDICATION, HIGH); // Отладка: выключаем звуковую индикацию прерывания
+}
+
+void updateContolPanel() {
+  deugChangesMillis = millis();
+  uint8_t steamLowerTreshold = steamTemperature - 4; // Нижний предел температуры пара для индикации
+  uint8_t steamUpperTreshold = steamTemperature + 10; // Верхний предел температуры пара для индикации
+
+  // Инкрементируем служебные переменные:
+  if (currentState == Booster) { // Временные интервалы не точные, но для такой цели сойдёт
+    if (boosterTimer < BOOSTER_SWAP_TIMEOUT) boosterTimer += PAGE_REFRESH_INTERVAL;
+    else isPumpTimeOut = false;
+    if (boosterSwapTimer < BOOSTER_SWAP_INTERVAL) boosterSwapTimer += PAGE_REFRESH_INTERVAL;
+  }
+
+  if (waterLevel <= 0) changeState(); // При недостаточном уровне воды выключаем помпу и сигнализируем звуком и светом о низком уровне
+  else passTime = passTimeInMillis / 1000; // Если помпа работает, считаем время пролива
+
+  // Подготавливаем и отсылаем страничке значения с датчиков:
+  temperature = getNTCtemperature(); // Обновляем значение глобальной переменной, чтобы ПИД мог брать оттуда актуальные данные
+  boilerTemperature = kTCboiler.getTempInt(); // Температура бойлера, отображаемая в интерфейсе
+  groupTemperature = kTCgroup.getTempInt(); // Температура группы
+  waterLevel = getWaterLevel(loopCounter++); // Актуализируем уровень воды в танкере (это занимает порядка 15 мс):
+  if (loopCounter >= WATER_LEVEL_BUFFER_SIZE) loopCounter = 0; // Сбрасываем счётчик при переполнении
+  currentWeight = myRound(scale.get_units(1)); // Вес напитка myRound(scale.get_units(3))
+  // Сигнализируем о попадании температуры в заданный диапазон при нахождении:
+  uint16_t targetTemperature = (boilerTemperature + groupTemperature) / 2; // Усреднённая температура бойлера и группы
+  // в режиме пара или бустера
+  if (currentState == Steam || currentState == Booster) isTemperatureReached = temperature > steamLowerTreshold && temperature < steamUpperTreshold;
+  // в режиме эспрессо
+  else if (currentState == Wait  || currentState == Pass  || currentState == SteamValve) isTemperatureReached = groupTemperature > 90 && groupTemperature < 105;
+  // Формируем пакет данных для отправки на страницу по SSE
+  String ss;
+  makeSendString(ss); // Пихаем все значения в одну строку через разделитель
+  events.send(ss.c_str(), "values", millis()); // Отправляем данные на страницы, подписанные на наше событие SSE
 }
 
 uint8_t getWaterLevel(uint8_t counter) { // Определяет усреднённый уровень воды в процентах. Возвращает корректное значение после WATER_LEVEL_BUFFER_SIZE вызовов, когда накопит данные
@@ -115,8 +152,6 @@ uint8_t getWaterLevel(uint8_t counter) { // Определяет усреднё�
 }
 
 void makeSendString(String& s) {
-  String diagnosticString = "";
-
   s += String(temperature, 1); // Темпрература с датчика регулирования (сейчас это NTC-термистор) 0
   s += "¿";
   s += groupTemperature; // Температура группы (с термопары) 1
@@ -137,9 +172,10 @@ void makeSendString(String& s) {
   s += "¿";
   s += boilerTemperature; // Температура бойлера по термопаре 7
   s += "¿";
+  String diagnosticString = String(millis() - deugChangesMillis);
   s += diagnosticString; //String(pt100.temperature(100.0, 430.0), 1); // Температура в верхней части бойлера (по PT100-термистору) 8
   s += "¿";
-  s += String(myRound(scale.get_units(3)), 1); // Вес напитка 9
+  s += String(currentWeight, 1); //String(myRound(scale.get_units(3)), 1); // Вес напитка 9
   s += "¿";
   s += String(isLivePass); // Индикатор боевого пролива 10
   s.trim();
