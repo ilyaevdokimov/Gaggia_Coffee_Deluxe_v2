@@ -39,7 +39,7 @@
 #define SCALE_CALIBRATION_FACTOR 2404 // Калибровочный коэффициент весов
 #define PULSEWIDTH 500 // Интервал обновления ПИД-регулятора
 #define PAGE_REFRESH_INTERVAL 300 // Интервал обновления интерфейса
-#define PASS_VALVE_LIVE_TRESHOLD 37 // Пороговое значение боевого пролива (время делённое на объём) 87
+#define PASS_VALVE_LIVE_TRESHOLD 87 // Пороговое значение боевого пролива (время делённое на объём) 87
 #define PASS_VALVE_OPEN_TIME 7 // Время открытия клапана сброса давления в секундах
 #define AUTO_OFF_TIMEOUT 30 // Время автоматического отключения при простое (в минутах)
 #define BOOSTER_SWAP_INTERVAL 3000 // Интервал включения подкачки микрообъёмов воды в режиме бустера пара
@@ -117,8 +117,8 @@ uint8_t WEBState; // Состояние, установленное через W
 volatile bool isStateChanged = false; // Индикатор изменения состояния
 
 // Отладочные переменные
-//volatile uint64_t debugValueChangeBegin; // Отметка времени начала отладки значения
-//volatile uint64_t deugValueChangesMillis; // Отметка millis изменения
+volatile uint64_t debugValueChangeBegin; // Отметка времени начала отладки значения
+volatile uint64_t deugValueChangesMillis; // Отметка millis изменения
 //volatile uint64_t debugChangesMicros; // Отметка micros изменения
 
 // Для инициализации пинов при первом loop'е, чтобы  иметь возможность засечь bootloop и т.п.

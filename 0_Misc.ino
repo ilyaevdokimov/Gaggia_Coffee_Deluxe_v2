@@ -46,52 +46,56 @@ void changeState() {
   timerWrite(autoOFFtimer, 0);  // Сброс таймера автоотключения
   digitalWrite(PUMP, LOW); // Переход из одного состояния в другое всегда должен происходить через отключение помпы. Новый режим включит её при необходимости
 
+  debugValueChangeBegin = millis();
   // Проверяем, был ли пролив боевым
   isLivePass = passTime > 13 && waterStreamValue > 0 && passTimeInMillis / waterStreamValue > PASS_VALVE_LIVE_TRESHOLD;
 
   if (currentState == Pass && isLivePass) { // Если пролив завершён (newState ведь не равен currentState), и он был боевым
+    digitalWrite(PASS_VALVE, HIGH); // Открываем клапан. А закроет его обработчик прерывания тайммера
     timerAlarm(flashTimer, passValveOpenTime * 1000, false, 0); // Устанавливаем время однократного срабатывания таймера сброса давления
     timerStop(flashTimer);
     timerWrite(flashTimer, 0); // Сбрасываем счётчик
     timerRestart(flashTimer); // Перезапускаем таймер сброса давления
     timerStart(flashTimer); // Запускаем таймер
-    digitalWrite(PASS_VALVE, HIGH); // Открываем клапан. А закроет его обработчик прерывания тайммера
+    deugValueChangesMillis = millis() - debugValueChangeBeginl;
   }
+  else (
+      deugValueChangesMillis = 322223322;
+  }
+// Пролив проверен, теперь можно запомнить новое состояние:
+currentState = newState;
 
-  // Пролив проверен, теперь можно запомнить новое состояние:
-  currentState = newState;
-
-  // Приводим состояния исполнительных устройств в соответствие с новым режимом. Помпа:
-  if (currentState == Pass || currentState == Drain) {
-    if (waterLevel > 10) digitalWrite(PUMP, HIGH); // Включаем только при достаточном уровне воды. Выключится она сама при следующей смене состояния
-    else { // Если воды мало, сигнализируем
-      // Длинным гудком:
-      digitalWrite(SOUND_INDICATION, LOW);
-      // И светом:
-      ledcWrite(TANK_LED, 4095);
-      vTaskDelay(500);
-      ledcWrite(TANK_LED, 0);
-      vTaskDelay(500);
-      digitalWrite(SOUND_INDICATION, HIGH);
-      ledcWrite(TANK_LED, 4095);
-      vTaskDelay(500);
-      ledcWrite(TANK_LED, 0);
-      vTaskDelay(500);
-    }
-    if (currentState == Pass) { // При начале пролива (но не дренажа!)
-      passTime = 0; // Сбрасываем счётчик времени пролива
-      passBegin = millis(); // И временнУю метку
-      passTimeInMillis = 0; // Да и время пролива в милисекундах - тоже, на всякий случай
-      waterStreamValue = 0; // Сбрасываем счётчик объёма воды, пролитой через группу
-      scale.tare(1); // Сбрасываем значение на весах (1 раз, чтобы побыстрее)
-    }
+// Приводим состояния исполнительных устройств в соответствие с новым режимом. Помпа:
+if (currentState == Pass || currentState == Drain) {
+  if (waterLevel > 10) digitalWrite(PUMP, HIGH); // Включаем только при достаточном уровне воды. Выключится она сама при следующей смене состояния
+  else { // Если воды мало, сигнализируем
+    // Длинным гудком:
+    digitalWrite(SOUND_INDICATION, LOW);
+    // И светом:
+    ledcWrite(TANK_LED, 4095);
+    vTaskDelay(500);
+    ledcWrite(TANK_LED, 0);
+    vTaskDelay(500);
+    digitalWrite(SOUND_INDICATION, HIGH);
+    ledcWrite(TANK_LED, 4095);
+    vTaskDelay(500);
+    ledcWrite(TANK_LED, 0);
+    vTaskDelay(500);
   }
-  // Бустер. Если мы переключаемся в этот режим, сбрасываем флаг 10-секундной задержки включения циклической подкачки воды
-  if (currentState == Booster) {
-    isPumpTimeOut = true;
-    boosterTimer = 0;
-    boosterSwapTimer = 0;
+  if (currentState == Pass) { // При начале пролива (но не дренажа!)
+    passTime = 0; // Сбрасываем счётчик времени пролива
+    passBegin = millis(); // И временнУю метку
+    passTimeInMillis = 0; // Да и время пролива в милисекундах - тоже, на всякий случай
+    waterStreamValue = 0; // Сбрасываем счётчик объёма воды, пролитой через группу
+    scale.tare(1); // Сбрасываем значение на весах (1 раз, чтобы побыстрее)
   }
+}
+// Бустер. Если мы переключаемся в этот режим, сбрасываем флаг 10-секундной задержки включения циклической подкачки воды
+if (currentState == Booster) {
+  isPumpTimeOut = true;
+  boosterTimer = 0;
+  boosterSwapTimer = 0;
+}
 }
 
 void updateControlPanel() {
