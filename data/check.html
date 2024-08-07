@@ -2,7 +2,7 @@
 <html>
 <head>
 	<meta charset='UTF-8'>
-	<title>Кофеварка SSE - Панель управления</title>
+	<title>Кофеварка SSE - Диагностика</title>
 	<meta name='viewport' content='width=device-width, initial-scale=1'>
 	<link rel='stylesheet' href="s1.css" />
 </head>
@@ -24,46 +24,54 @@
 	</ul>
 	</details>
 	<div class='content'>
-		<h1>Панель управления</h1>
+		<h1>Диагностика</h1>
 		<div class='cards'>
 			<div class='card'>
-				<p>Бойлер/Группа,&deg;C</p>
-				<span id='temp1'>...</span>/<span id='temp2'>...</span>
-			</div>
-			<div class='card'>
-				<p>Боевой</p>
+				<p>Помпа</p>
 				<label class='switch'>
 					<input type='checkbox' onchange='toggleCheckbox(this)' id='btnLivePass'>
 					<span class='slider'></span>
 				</label>
 			</div>
 			<div class='card'>
-				<p>Вес, г</p>
-				<span id='weight1'>...</span>
-			</div>
-			<div class='card'>
-				<p>Сброс</p>
+				<p>Клапан</p>
 				<label class='switch'>
-					<input type='checkbox' onchange='toggleCheckbox(this)' id='btnTare'>
+					<input type='checkbox' onchange='toggleCheckbox(this)' id='btnByPass'>
 					<span class='slider'></span>
 				</label>
 			</div>
 			<div class='card'>
-				<p>Время, с</p>
-				<span id='passTime1'>...</span>
-			</div>
-			<div class='card'>
-				<p>Пар</p>
+				<p>Динамик</p>
 				<label class='switch'>
-					<input type='checkbox' onchange='toggleCheckbox(this)' id='btnSteam'>
+					<input type='checkbox' onchange='toggleCheckbox(this)' id='btnBuzzer'>
 					<span class='slider'></span>
 				</label>
 			</div>
 			<div class='card'>
-				<span><a href="/">Стоп</a></span>
+				<p>Нагрев</p>
+				<label class='switch'>
+					<input type='checkbox' onchange='toggleCheckbox(this)' id='btnHeating'>
+					<span class='slider'></span>
+				</label>
 			</div>
 			<div class='card'>
-				<span><a href='stngsSSE.html'>Настройки</a></span>
+				<p>Свет танкер</p>
+				<label class='switch'>
+					<input type='checkbox' onchange='toggleCheckbox(this)' id='btnTankerLight'>
+					<span class='slider'></span>
+				</label>			</div>
+			<div class='card'>
+				<p>Свет группа</p>
+				<label class='switch'>
+					<input type='checkbox' onchange='toggleCheckbox(this)' id='btnWorkspaceLight'>
+					<span class='slider'></span>
+				</label>
+			</div>
+			<div class='card'>
+				<span><a href="/">Подготовка</a></span>
+			</div>
+			<div class='card'>
+				<span><a href='cpSSE.html'>Старт</a></span>
 			</div>
 		</div>
 	</div>
@@ -74,18 +82,14 @@ if (!!window.EventSource) {
   var res = String(e.data).split('¿');
   setVal('ntc', res[0]);
   setVal('tcG', res[1]);
-  setVal('temp2', res[1]);
   setVal('waterLevel', res[2]);
   setVal('currentState', res[3]);
   setVal('passTime', res[4]);
-  setVal('passTime1', res[4]);
   setVal('waterStreamValue', res[5]);
   setVal('freeValue', res[6]);
   setVal('tcB', res[7]);
-  setVal('temp1', res[7]);
   setVal('pt100', res[8]);
   setVal('weight', res[9]);
-  setVal('weight1', res[9]);
   setVal('livePass', res[10]);
  }, false); 
 }

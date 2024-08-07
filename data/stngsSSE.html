@@ -9,6 +9,7 @@
 <body onload="adjustControls()">
   <details>
 	<summary>Кофеварка SSE</summary>
+	<button onclick='window.location.href="check.html"'>Диагностика</button>
   </details>
   <div class='content'>
 	<h1>Настройки</h1>
@@ -245,7 +246,7 @@ function sendData() {
   str+='&p2='+document.getElementById('steamTemperatureValue').value;
   str+='&p3='+document.getElementById('valveTimeValue').value;
   str+='&p4='+document.getElementById('autoOffTimeValue').value;
-  if(chkTWtoggler.checked) {
+  if(document.getElementById('chkTWtoggler').checked) {
 	var wgth = parseFloat(document.getElementById('targetWeight').value.trim());
 	if(typeof wgth == 'number' && !isNaN(wgth)) {
 		if(wgth != 0) {

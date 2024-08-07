@@ -17,6 +17,8 @@ void startWEBServer() { // Запуск HTTP-сервера с обработч�
 
   server.on("/", HTTP_GET, [](AsyncWebServerRequest * request) {
     if (isEspressoHeatingOn) isAutoOFFneeded = true; // Принудительно выполняем процедуру автоотключения (только если нагрев был включен)
+    currentState = Wait; // Всегда устанавливаем режим ожидания, вне зависимости от того, что там нажато на кофеварке
+    newState = currentState;
     request->send(LittleFS, "/index.html");
   });
 
@@ -43,6 +45,13 @@ void startWEBServer() { // Запуск HTTP-сервера с обработч�
     request->send(LittleFS, "/cpSSE.html");
   });
 
+  server.on("/check.html", HTTP_GET, [](AsyncWebServerRequest * request) {
+    if (isEspressoHeatingOn) isAutoOFFneeded = true; // Принудительно выполняем процедуру автоотключения (только если нагрев был включен)
+    currentState = Diagnostics; // Устанавливаем режим диагностики
+    newState = currentState;
+    request->send(LittleFS, "/check.html");
+  });
+
   server.on("/updatedata", HTTP_GET, [] (AsyncWebServerRequest * request) {
     String controlID;
     String controlValue;
@@ -56,8 +65,12 @@ void startWEBServer() { // Запуск HTTP-сервера с обработч�
       controlValue = "No message sent";
     }
 
-    if (controlID == "btnSteam") { // Пока непонятно, что тут можно сделать
-      
+    if (controlID == "btnSteam") { // Пока непонятно, что тут можно сделать. Как-то будем программно включать режим пара...
+
+    }
+    else if (controlID == "btnLivePass") { // Аналогичная фигня с боевым проливом
+      // Пока срабатываем только в режиме диагностики
+      if (currentState == Diagnostics) digitalWrite(PUMP, controlValue == "true" ? HIGH : LOW);
     }
     else if (controlID == "btnDummyPass") {
       /*
@@ -69,11 +82,23 @@ void startWEBServer() { // Запуск HTTP-сервера с обработч�
         preferences.end(); // Закрываем настройки
       */
     }
-    else if (controlID == "btnTare") {
+    else if (controlID == "btnTare") { // Тарируем весы
       scale.tare(1); // Сбрасываем значение на весах (1 раз, чтобы побыстрее)
     }
-    else if (controlID == "btnLivePass") {
-
+    else if (controlID == "btnByPass") { // Проверяем клапан
+      if (currentState == Diagnostics) digitalWrite(PASS_VALVE, controlValue == "true" ? HIGH : LOW);
+    }
+    else if (controlID == "btnBuzzer") { // Проверяем динамик
+      if (currentState == Diagnostics) digitalWrite(SOUND_INDICATION, controlValue == "true" ? LOW : HIGH);
+    }
+    else if (controlID == "btnHeating") { // Тестируем нагрев (осторожно! клнтроля температуры нет, можно перегреть!)
+      if (currentState == Diagnostics) digitalWrite(HEATING, controlValue == "true" ? HIGH : LOW); 
+    }
+    else if (controlID == "btnTankerLight") { // Проеряем работу подстветки танкера с водой
+      ledcWrite(TANK_LED, controlValue == "true" ? LEDC_TARGET_DUTY : 0);
+    }
+    else if (controlID == "btnWorkspaceLight") { // Проеряем работу подстветки рабочей области
+      ledcWrite(WORKSPACE_LED, controlValue == "true" ? LEDC_TARGET_DUTY : 0);
     }
     request->send(200, "text/plain", "OK");
   });
