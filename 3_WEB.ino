@@ -13,29 +13,29 @@ class CaptiveRequestHandler : public AsyncWebHandler { // Обработчик �
 };
 
 void startWEBServer() { // Запуск HTTP-сервера с обработчиками чтения и загрузки файла
-  // Обработчики обращений к WEB-серверу
-
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest * request) {
+  
+  // Обработчики обращений к WEB-серверу:
+  
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest * request) { // Главная
     if (isEspressoHeatingOn) isAutoOFFneeded = true; // Принудительно выполняем процедуру автоотключения (только если нагрев был включен)
     currentState = Wait; // Всегда устанавливаем режим ожидания, вне зависимости от того, что там нажато на кофеварке
     newState = currentState;
     request->send(LittleFS, "/index.html");
   });
 
-  server.serveStatic("/s1.css", LittleFS, "/s1.css");
+  server.serveStatic("/s1.css", LittleFS, "/s1.css"); // Стили
 
-  server.serveStatic("/stngsSSE.html", LittleFS, "/stngsSSE.html").setTemplateProcessor(processor);
+  server.serveStatic("/stngsSSE.html", LittleFS, "/stngsSSE.html").setTemplateProcessor(processor); // Настройки
 
-  server.on("/cpSSE.html", HTTP_GET, [](AsyncWebServerRequest * request) {
-    // Чтобы сменился режим и запустились задачи нагрева
-    isEspressoHeatingOn = true; // Включаем нагрев
+  server.on("/cpSSE.html", HTTP_GET, [](AsyncWebServerRequest * request) { // Панель управления
+    isEspressoHeatingOn = true; // Чтобы сменился режим и начался нагрев
     // Реинициализируем фэйдинг:
     isFadeEnded = false;
     isFadeOn = true;
     ledcFadeWithInterrupt(TANK_LED, LEDC_TARGET_DUTY, LEDC_START_DUTY, LEDC_FADE_TIME, LED_FADE_ISR); // Запускаем фэйдинг
     ledcWrite(WORKSPACE_LED, LEDC_TARGET_DUTY); // Врубаем на полную освещение в рабочей зоне
 
-    timerStop(autoOFFtimer);
+    timerStop(autoOFFtimer); // Отсанвливаем таймер автоотключения
     timerWrite(autoOFFtimer, 0); // Сбрасываем счётчик
     timerRestart(autoOFFtimer); // Перезапускаем таймер (на случай, если он уже срабатывал - он ведь однократный)
     timerStart(autoOFFtimer); // Запускаем таймер
@@ -45,14 +45,14 @@ void startWEBServer() { // Запуск HTTP-сервера с обработч�
     request->send(LittleFS, "/cpSSE.html");
   });
 
-  server.on("/check.html", HTTP_GET, [](AsyncWebServerRequest * request) {
+  server.on("/check.html", HTTP_GET, [](AsyncWebServerRequest * request) { // Диагностика
     if (isEspressoHeatingOn) isAutoOFFneeded = true; // Принудительно выполняем процедуру автоотключения (только если нагрев был включен)
     currentState = Diagnostics; // Устанавливаем режим диагностики
     newState = currentState;
     request->send(LittleFS, "/check.html");
   });
 
-  server.on("/updatedata", HTTP_GET, [] (AsyncWebServerRequest * request) {
+  server.on("/updatedata", HTTP_GET, [] (AsyncWebServerRequest * request) { // GET-запрос на изменение состояние элемента управления на странице
     String controlID;
     String controlValue;
     // Получаем значение из GET-запроса <ESP_IP>/updatedata?output=<controlID>&state=<controlValue>
@@ -60,7 +60,7 @@ void startWEBServer() { // Запуск HTTP-сервера с обработч�
       controlID = request->getParam("output")->value();
       controlValue = request->getParam("state")->value();
     }
-    else { // Непонятно, зачем нам это может пригодиться...
+    else { // Непонятно, зачем нам это может пригодиться, но так было в примере...
       controlID = "No message sent";
       controlValue = "No message sent";
     }
@@ -83,7 +83,7 @@ void startWEBServer() { // Запуск HTTP-сервера с обработч�
       */
     }
     else if (controlID == "btnTare") { // Тарируем весы
-      scale.tare(1); // Сбрасываем значение на весах (1 раз, чтобы побыстрее)
+      scale.tare(1); // Сбрасываем значение на весах за 1 проход, чтобы побыстрее (при значении по-умолчанию выполняется больше секунды!)
     }
     else if (controlID == "btnByPass") { // Проверяем клапан
       if (currentState == Diagnostics) digitalWrite(PASS_VALVE, controlValue == "true" ? HIGH : LOW);
@@ -92,7 +92,7 @@ void startWEBServer() { // Запуск HTTP-сервера с обработч�
       if (currentState == Diagnostics) digitalWrite(SOUND_INDICATION, controlValue == "true" ? LOW : HIGH);
     }
     else if (controlID == "btnHeating") { // Тестируем нагрев (осторожно! клнтроля температуры нет, можно перегреть!)
-      if (currentState == Diagnostics) digitalWrite(HEATING, controlValue == "true" ? HIGH : LOW); 
+      if (currentState == Diagnostics) digitalWrite(HEATING, controlValue == "true" ? temperature < 150 : LOW); // Хоть какая-то (150 градусов) защита от перегрева
     }
     else if (controlID == "btnTankerLight") { // Проеряем работу подстветки танкера с водой
       ledcWrite(TANK_LED, controlValue == "true" ? LEDC_TARGET_DUTY : 0);
@@ -110,7 +110,7 @@ void startWEBServer() { // Запуск HTTP-сервера с обработч�
   });
 
   server.addHandler(&events);
-  if (isSoftAP) server.addHandler(new CaptiveRequestHandler()).setFilter(ON_AP_FILTER); // Обработчик действителен только в режиме AP
+  if (isSoftAP) server.addHandler(new CaptiveRequestHandler()).setFilter(ON_AP_FILTER); // Обработчик CaptivePortal. Действителен только в режиме AP
 
   server.on("/updatesettings", HTTP_GET, [] (AsyncWebServerRequest * request) { // Обновление параметров со страницы настроек
     preferences.begin("gSettings", false);
@@ -190,7 +190,7 @@ void startWEBServer() { // Запуск HTTP-сервера с обработч�
     request->send(200, "text/plain", "OK");
   });
 
-  server.on("/updateWiFi", HTTP_GET, [] (AsyncWebServerRequest * request) { // Обновление списка WiFi-сетей со страницы настроек
+  server.on("/updateWiFi", HTTP_GET, [] (AsyncWebServerRequest * request) { // Обновление списка сохранённых WiFi-сетей со страницы настроек
     // Получаем данные из GET-запроса <ESP_IP>/updateWiFi?P1=<значение>&P2=<значение>
     if (request->hasParam("p1") && request->hasParam("p2")) { // Если в запросе на изменение были указаны SSID и пароль...
       String newSSID = request->getParam("p1")->value(); // ...получаем значение SSID
@@ -208,7 +208,7 @@ void startWEBServer() { // Запуск HTTP-сервера с обработч�
               String current = file.readStringUntil('\n'); // Построчно читаем его содержимое
               if (newSSID == current) alreadyExistInFile = true; // И сравниваем с переданным именем сети
             }
-            file.close(); // Не уверен, что это безопасно в случае, если файл не открылся
+            file.close();
           }
           // Если строки ещё нет, добавляем её:
           if (alreadyExistInFile == false) {
@@ -226,10 +226,11 @@ void startWEBServer() { // Запуск HTTP-сервера с обработч�
         preferences.end(); // Закрываем настройки
         request->send(200, "text/plain", "OK");
       }
+      // Тут бы надо отправить ответ об ошибке валидации длины пароля
     }
   });
 
-  server.on("/deleteWiFi", HTTP_GET, [] (AsyncWebServerRequest * request) { // Обновление списка WiFi-сетей со страницы настроек
+  server.on("/deleteWiFi", HTTP_GET, [] (AsyncWebServerRequest * request) { // Удаление WiFi-сети из списка сохранённых со страницы настроек
     if (request->hasParam("p1")) {
       String SSID2delete = request->getParam("p1")->value() + "\n";
       if (LittleFS.exists("/knownNetworks.txt")) { // Если файл настроек существует
@@ -250,6 +251,6 @@ void startWEBServer() { // Запуск HTTP-сервера с обработч�
     }
   });
 
-  ElegantOTA.begin(&server); // Start ElegantOTA
-  server.begin();
+  ElegantOTA.begin(&server); // Запуск сервиса обновления по воздуху ElegantOTA
+  server.begin(); // Запуск сервера
 }

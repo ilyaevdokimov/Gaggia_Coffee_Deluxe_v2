@@ -1,8 +1,8 @@
-void HeaterControl(void *pvParameters) { // задача управления всеми видами нагрева
+void HeaterControl(void *pvParameters) { // Задача управления всеми видами нагрева
   // Вспомогательные переменные ПИД-регулятора:
   uint64_t timeAtTemp;
   bool relayControl;
-  AutoPIDRelay espressoPID(&temperature, &setTemp, &relayControl, 5000, .53, .0003, 0); // Переменные temperature и steamTemperature являются глобальными, т.к. используются в других задачах
+  AutoPIDRelay espressoPID(&temperature, &setTemp, &relayControl, 5000, .53, .0003, 0); // Переменные temperature и steamTemperature являются глобальными, т.к. используются в других местах
   espressoPID.setBangBang(2); // Ускорение нагрева до +- 2 градусов
   espressoPID.setTimeStep(PULSEWIDTH); // Задержка регулирования
 
@@ -37,7 +37,7 @@ void HeaterControl(void *pvParameters) { // задача управления в
           digitalWrite(HEATING, groupTemperature < 95); // Пределом является температура группы, равная температуре идеального пролива эспрессо
         }
         else { // Если поддерживаем температуру в режиме ожилания, регулируем ПИД'ом
-          // Целевую температуру меняем в зависимости от прогрева группы:
+          // При этом целевую температуру меняем в зависимости от прогрева группы:
           switch (groupTemperature) {
             case 0 ... 80:
               setTemp = P1.toDouble() + 3.0; // Увеличиваем целевую температуру для более скоростного нагрева
@@ -61,8 +61,8 @@ void HeaterControl(void *pvParameters) { // задача управления в
         }
       }
     }
-    else {
-      if (isAutoOFFneeded) {
+    else { // Нагрев выключен
+      if (isAutoOFFneeded) { // Если флаг необходимости выполнения процедуры автоотключения установлен
         timerStop(autoOFFtimer); // Выключаем таймер автоотключения
         timerWrite(autoOFFtimer, 0); // Сбрасываем счётчик
         // Выключаем нагрев:
@@ -81,6 +81,6 @@ void HeaterControl(void *pvParameters) { // задача управления в
         isAutoOFFneeded = false; // Сбрасываем флаг необходимости автоотключения
       }
     }
-    vTaskDelay(PULSEWIDTH);
+    vTaskDelay(PULSEWIDTH); // Отдыхаем, даём выполняться другим задачам
   }
 }

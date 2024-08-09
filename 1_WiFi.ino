@@ -1,5 +1,4 @@
-// Запуск WiFi
-void startWiFi() { // Запуск точки доступа Wi-Fi
+void startWiFi() { // Запуск собственной точки доступа Wi-Fi и подключение (при возможности) к существующей
   WiFi.hostname("GAGGIA_Coffee-" + String((uint32_t)(ESP.getEfuseMac() >> 32), HEX)); // Формируем имя хоста
   // Работаем в смешанном режиме (роутер + собственная точка доступа)
   WiFi.mode(WIFI_AP_STA);
@@ -28,7 +27,7 @@ bool tryAvailableNetworks() {
   if (connectionResult != true) { // Если последней использованной сети нет, или к ней не удалось подключиться
     int n = WiFi.scanNetworks(); // Придётся использовать поиск доступных сетей
     for (uint8_t i = 0; i < n; ++i) {
-      ssid = WiFi.SSID(i);
+      ssid = WiFi.SSID(i); // Перебираем все найденные сети
       if (preferences.isKey(ssid.c_str())) { // Если в сохранённых настройках есть такая сеть...
         password = preferences.getString(ssid.c_str(), ""); // ...берём её пароль...
         WiFi.begin(ssid.c_str(), password.c_str()); // ...и пробуем подконнектиться...
@@ -46,7 +45,7 @@ bool tryAvailableNetworks() {
 }
 
 void makeSoftAP() {
-  WiFi.softAP(SoftAP_SSID, SoftAP_password); // Имя сети и пароль при работе в режиме Soft AP (точки доступа)
+  WiFi.softAP(SoftAP_SSID, SoftAP_password); // Создаём точку доступа с именем и паролем из нативных значений соответствующих параметров
   isSoftAP = true;
   dnsServer.start();
 }

@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset='UTF-8'>
-  <title>Кофеварка SSE - Подготовка</title>
+  <title>Кофеварка SSE - Ожидание</title>
   <meta name='viewport' content='width=device-width, initial-scale=1'>
   <link rel='stylesheet' href='s1.css' />
 </head>
@@ -13,7 +13,7 @@
 	<li>NTC: <span id='ntc'>?</span></li>
 	<li>БОЙЛЕР: <span id='tcB'>?</span></li>	
 	<li>ГРУППА: <span id='tcG'>?</span></li>
-	<li>PT100: <span id='pt100'>?</span></li>
+	<li>ДИАГНОСТИКА: <span id='diag'>?</span></li>
 	<li>УРОВЕНЬ ВОДЫ: <span id='waterLevel'>?</span></li>
 	<li>ВРЕМЯ ПРОЛИВА: <span id='passTime'>?</span></li>
 	<li>РАСХОД: <span id='waterStreamValue'>?</span></li>
@@ -24,7 +24,7 @@
   </ul>
   </details>
   <div class='content'>
-	<h1>Подготовка</h1>
+	<h1>Ожидание</h1>
     <div class='cards'>
 	<div class='card'>
 		<p>Вес, г</p>
@@ -59,7 +59,7 @@ if (!!window.EventSource) {
   setVal('waterStreamValue', res[5]);
   setVal('freeValue', res[6]);
   setVal('tcB', res[7]);
-  setVal('pt100', res[8]);
+  setVal('diag', res[8]);
   setVal('weight', res[9]);
   setVal('weight1', res[9]);
   setVal('livePass', res[10]);
