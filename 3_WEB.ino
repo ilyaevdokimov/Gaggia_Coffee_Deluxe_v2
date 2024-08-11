@@ -13,9 +13,9 @@ class CaptiveRequestHandler : public AsyncWebHandler { // Обработчик �
 };
 
 void startWEBServer() { // Запуск HTTP-сервера с обработчиками чтения и загрузки файла
-  
+
   // Обработчики обращений к WEB-серверу:
-  
+
   server.on("/", HTTP_GET, [](AsyncWebServerRequest * request) { // Главная
     if (isEspressoHeatingOn) isAutoOFFneeded = true; // Принудительно выполняем процедуру автоотключения (только если нагрев был включен)
     currentState = Wait; // Всегда устанавливаем режим ожидания, вне зависимости от того, что там нажато на кофеварке
@@ -55,52 +55,48 @@ void startWEBServer() { // Запуск HTTP-сервера с обработч�
   server.on("/updatedata", HTTP_GET, [] (AsyncWebServerRequest * request) { // GET-запрос на изменение состояние элемента управления на странице
     String controlID;
     String controlValue;
+    String json = "";
     // Получаем значение из GET-запроса <ESP_IP>/updatedata?output=<controlID>&state=<controlValue>
-    if (request->hasParam("output") && request->hasParam("state")) {
+    if (request->hasParam("output") && request->hasParam("state")) { // Пытаемся прочесть параметры
       controlID = request->getParam("output")->value();
       controlValue = request->getParam("state")->value();
     }
-    else { // Непонятно, зачем нам это может пригодиться, но так было в примере...
-      controlID = "No message sent";
-      controlValue = "No message sent";
-    }
+    else json = "[{\"error\": \"Bad request\",\"message\": \"Parameters missing\",}]"; // Если не удаётся, формируем сообщение об их отсутствии
 
-    if (controlID == "btnSteam") { // Пока непонятно, что тут можно сделать. Как-то будем программно включать режим пара...
-
+    if (json != "") request->send(400, "application/json", json); // Отсылаем сообщение об ошибке в случае отсутствия нужных параметров
+    else {
+      if (controlID == "btnSteam") { // Программное (экранной кнопкой) переключение режима пара
+        if (currentState != checkState(!digitalRead(PASS_BUTTON), controlValue == "true" ? true : false, !digitalRead(STEAM_VALVE_BUTTON), false)) changeState();
+      }
+      else if (controlID == "btnLivePass") { // Программное (экранной кнопкой) переключение пролива
+        if (currentState == Diagnostics) digitalWrite(PUMP, controlValue == "true" ? HIGH : LOW); // В режиме диагностики просто переключаем состояние помпы, тут всё просто
+        else { // Во всех остальных режимах вычисляем новое состояние и в случае несовпадения сразу же изменяем - мы же не в прерывании...
+          if (currentState != checkState(controlValue == "true" ? true : false, !digitalRead(STEAM_BUTTON), !digitalRead(STEAM_VALVE_BUTTON), false)) changeState();
+        }
+      }
+      else if (controlID == "btnTare") { // Тарируем весы
+        scale.tare(1); // Сбрасываем значение на весах за 1 проход, чтобы побыстрее (при значении по-умолчанию выполняется больше секунды!)
+      }
+      else if (controlID == "btnPass") { // Проверяем помпу
+        if (currentState == Diagnostics) digitalWrite(PUMP, controlValue == "true" ? HIGH : LOW);
+      }
+      else if (controlID == "btnByPass") { // Проверяем клапан
+        if (currentState == Diagnostics) digitalWrite(PASS_VALVE, controlValue == "true" ? HIGH : LOW);
+      }
+      else if (controlID == "btnBuzzer") { // Проверяем динамик
+        if (currentState == Diagnostics) digitalWrite(SOUND_INDICATION, controlValue == "true" ? LOW : HIGH);
+      }
+      else if (controlID == "btnHeating") { // Тестируем нагрев (осторожно! клнтроля температуры нет, можно перегреть!)
+        if (currentState == Diagnostics) digitalWrite(HEATING, controlValue == "true" ? temperature < 150 : LOW); // Хоть какая-то (150 градусов) защита от перегрева
+      }
+      else if (controlID == "btnTankerLight") { // Проеряем работу подстветки танкера с водой
+        ledcWrite(TANK_LED, controlValue == "true" ? LEDC_TARGET_DUTY : 0);
+      }
+      else if (controlID == "btnWorkspaceLight") { // Проеряем работу подстветки рабочей области
+        ledcWrite(WORKSPACE_LED, controlValue == "true" ? LEDC_TARGET_DUTY : 0);
+      }
+      request->send(200, "text/plain", "OK");
     }
-    else if (controlID == "btnLivePass") { // Аналогичная фигня с боевым проливом
-      // Пока срабатываем только в режиме диагностики
-      if (currentState == Diagnostics) digitalWrite(PUMP, controlValue == "true" ? HIGH : LOW);
-    }
-    else if (controlID == "btnDummyPass") {
-      /*
-        preferences.begin("gSettings", false);
-        preferences.putString("P5", "0.0");
-        preferences.putString("P6", "1");
-        preferences.putString("P7", "MyGaggia");
-        preferences.putString("P8", "MySecretString");
-        preferences.end(); // Закрываем настройки
-      */
-    }
-    else if (controlID == "btnTare") { // Тарируем весы
-      scale.tare(1); // Сбрасываем значение на весах за 1 проход, чтобы побыстрее (при значении по-умолчанию выполняется больше секунды!)
-    }
-    else if (controlID == "btnByPass") { // Проверяем клапан
-      if (currentState == Diagnostics) digitalWrite(PASS_VALVE, controlValue == "true" ? HIGH : LOW);
-    }
-    else if (controlID == "btnBuzzer") { // Проверяем динамик
-      if (currentState == Diagnostics) digitalWrite(SOUND_INDICATION, controlValue == "true" ? LOW : HIGH);
-    }
-    else if (controlID == "btnHeating") { // Тестируем нагрев (осторожно! клнтроля температуры нет, можно перегреть!)
-      if (currentState == Diagnostics) digitalWrite(HEATING, controlValue == "true" ? temperature < 150 : LOW); // Хоть какая-то (150 градусов) защита от перегрева
-    }
-    else if (controlID == "btnTankerLight") { // Проеряем работу подстветки танкера с водой
-      ledcWrite(TANK_LED, controlValue == "true" ? LEDC_TARGET_DUTY : 0);
-    }
-    else if (controlID == "btnWorkspaceLight") { // Проеряем работу подстветки рабочей области
-      ledcWrite(WORKSPACE_LED, controlValue == "true" ? LEDC_TARGET_DUTY : 0);
-    }
-    request->send(200, "text/plain", "OK");
   });
 
   // Обработчик событий Web-сервера для отправки страницам-подписчикам

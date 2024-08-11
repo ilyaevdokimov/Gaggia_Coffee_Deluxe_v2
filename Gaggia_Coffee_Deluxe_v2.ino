@@ -54,7 +54,6 @@
 
 bool waitingAfterReset = false;
 bool isSoftAP = false; // Флаг работы в режиме точки доступа
-bool preferWEB = false;; // Предпочитать удалённое управление через WEB-интерфейс
 bool isLivePass = false;; // Индикатор боевого пролива
 bool isPumpTimeOut = true; // Действует ли задержка включения циклической подкачки для режима бустера пара
 uint16_t boosterTimer = 0; // Счётчик задержки включения подкачки в режиме бустера пара
@@ -111,7 +110,6 @@ const char* stateStrings[] = {"ОЖИДАНИЕ", "ПРОЛИВ", "ДРЕНАЖ"
 
 volatile uint8_t currentState = Wait; // Изначально находмся в состоянии ожидания
 volatile uint8_t newState = currentState; // Новое состояние, для сравнения с текущим
-uint8_t WEBState; // Состояние, установленное через WEB-интерфейс, пока не реализовано
 volatile bool isStateChanged = false; // Индикатор изменения состояния
 
 // Отладочные переменные
@@ -152,7 +150,7 @@ void HeaterControl(void *pvParameters);
 
 // Обработчики прерываний:
 void ARDUINO_ISR_ATTR checkButtonState() { // Обработчик прерывания от кнопок управления и крана пара (дребезг подавлен аппаратно)
-  isStateChanged = currentState != checkState(); // Фиксируем факт изменения состояния (если таковой имеет место)
+  isStateChanged = currentState != checkState(!digitalRead(PASS_BUTTON), !digitalRead(STEAM_BUTTON), !digitalRead(STEAM_VALVE_BUTTON), true); // Фиксируем факт изменения состояния (если таковой имеет место)
 }
 
 void ARDUINO_ISR_ATTR countWaterValue() { // Подпрограмма подсчёта импульсов флоуметра
@@ -198,7 +196,7 @@ void setup() {
   delay(1);
 
   // Проверяем, не активирован ли режим аппаратного сброса
-  if (!digitalRead(PASS_BUTTON) && !digitalRead(STEAM_BUTTON) && !digitalRead(STEAM_VALVE_BUTTON)) { // Кнопки пара и пролива нажаты, кран пара открыт до срабатывания микрика
+  if (!digitalRead(PASS_BUTTON) && !digitalRead(STEAM_BUTTON)) { // Кнопки пара и пролива при включении находятся в нажатои состоянии
     pinMode(WORKSPACE_LED, OUTPUT); // Будем сигнализировать подсветкой рабочего стола о  ходе сброса параметров
     digitalWrite(WORKSPACE_LED, HIGH);
     uint8_t resetTimer; // Счётчик времени нажатия кнопки принудительного сброса настроек

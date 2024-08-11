@@ -10,17 +10,17 @@
   <details>
   <summary>Кофеварка SSE</summary>
   <ul>
+	<li>РЕЖИМ: <span id='currentState'>?</span></li>
 	<li>NTC: <span id='ntc'>?</span></li>
 	<li>БОЙЛЕР: <span id='tcB'>?</span></li>	
 	<li>ГРУППА: <span id='tcG'>?</span></li>
-	<li>ДИАГНОСТИКА: <span id='diag'>?</span></li>
-	<li>УРОВЕНЬ ВОДЫ: <span id='waterLevel'>?</span></li>
 	<li>ВРЕМЯ ПРОЛИВА: <span id='passTime'>?</span></li>
 	<li>РАСХОД: <span id='waterStreamValue'>?</span></li>
-	<li>РЕЖИМ: <span id='currentState'>?</span></li>
-	<li>ПАМЯТЬ: <span id='freeValue'>?</span></li>
 	<li>ВЕС: <span id='weight'>?</span></li>
-	<li>БОЕВОЙ: <span id='livePass'>?</span></li>
+	<li>УРОВЕНЬ ВОДЫ: <span id='waterLevel'>?</span></li>
+	<li>ДИАГНОСТИКА: <span id='diag'>?</span></li>	
+	<li>ПАМЯТЬ: <span id='freeValue'>?</span></li>
+	
   </ul>
   </details>
   <div class='content'>
@@ -62,7 +62,6 @@ if (!!window.EventSource) {
   setVal('diag', res[8]);
   setVal('weight', res[9]);
   setVal('weight1', res[9]);
-  setVal('livePass', res[10]);
  }, false); 
 }
 

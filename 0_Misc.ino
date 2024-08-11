@@ -16,32 +16,30 @@ void doHardReset() {
 }
 
 // Функция проверки состояния. Должна работать очбыстро, поскольку вызывается из прерывания (измеренное значение порядка 20 мкс)
-uint8_t checkState() {
+uint8_t checkState(bool passButtonPressed, bool steamButtonPressed, bool steamValveOpen, bool isHard) {
   if (currentState == Diagnostics) return Diagnostics; // Если мы в режиме диагностки, то какие бы аппаратные кнопки мы не нажимали, всё равно остаёмся в ржиме диагностики
-  
-  // Читаем состояние органов управления:
-  bool isPassButtonPressed = !digitalRead(PASS_BUTTON);
-  bool isSteamButtonPressed = !digitalRead(STEAM_BUTTON);
-  bool isSteamValveOpen = !digitalRead(STEAM_VALVE_BUTTON);
+
+  // Предполагается, что пользователь в здравом уме и не будет выключать пар, не закрыв предварительно кран пара
+  if (isHard == true && steamValveOpen && currentState == Steam) { // Если был режим пара, и прилетело аппаратное изменение - то оно от крана, а не от чего-нибудь другого
+    steamButtonPressed = true; // В случае, если аппаратная кнопка пара нажата, тут и так будет true. А если нет, но была нажата экранная кнопка - режим пара не отключится
+  }
 
   // Определяем новое состояние:
   // Только кнопка "Пролив". При включённой кнопке пара режим работать не будет!
-  if (isPassButtonPressed & !isSteamButtonPressed & !isSteamValveOpen) newState = Pass;
+  if (passButtonPressed & !steamButtonPressed & !steamValveOpen) newState = Pass;
   // Только кнопка "Пар" - используется для нагрева бойлера до заданной температуры и её поддержания
-  else if (isSteamButtonPressed & !isSteamValveOpen & !isPassButtonPressed) newState = Steam;
+  else if (steamButtonPressed & !steamValveOpen & !passButtonPressed) newState = Steam;
   // Только кран пара - ну открыли и открыли, ничего не надо делать
-  else if (isSteamValveOpen & !isSteamButtonPressed & !isPassButtonPressed) newState = SteamValve;
+  else if (steamValveOpen & !steamButtonPressed & !passButtonPressed) newState = SteamValve;
   // Кнопка "Пролив" и кран пара - делаем дренаж в стимер. Только при отключенном режиме пара!
-  else if (isPassButtonPressed & isSteamValveOpen & !isSteamButtonPressed) newState = Drain;
+  else if (passButtonPressed & steamValveOpen & !steamButtonPressed) newState = Drain;
   // Кнопка "Пар" и кран пара - мы взбиваем молоко, нам нужен бустер
-  else if (isSteamButtonPressed & isSteamValveOpen & !isPassButtonPressed) newState = Booster;
+  else if (steamButtonPressed & steamValveOpen & !passButtonPressed) {
+    newState = Booster;
+  }
   // Во всех остальных случаях работает режим "Ожидание"
   else newState = Wait;
 
-  if (preferWEB) { // При использовании WEB-управления учитываем состояние клавиатуры (нас интересует кран пара, ибо больше нам этот сигнал взять негде)
-    if (isSteamValveOpen && WEBState == Steam) newState = Booster; // При открытом кране пара включаем бустер, если текущий WEB-режим - это Пар
-    else newState = WEBState; // При закрытом - используем текущий режим, установленный через WEB-интерфейс
-  }
   return newState;
 }
 
@@ -173,7 +171,9 @@ void makeSendString(String& s) { // Формирование строки для
   s += "¿";
   s += String(currentWeight, 1); // Вес напитка 9
   s += "¿";
-  s += String(isLivePass); // Индикатор боевого пролива 10
+  s += String(currentState == Pass || currentState == Drain); // Должна ли быть нажата ли экранная кнопка пролива 10
+  s += "¿";
+  s += String(currentState == Steam || currentState == Booster); // Должна ли быть нажата ли экранная кнопка пара 11
   s.trim();
 }
 

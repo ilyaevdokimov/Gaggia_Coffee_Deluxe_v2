@@ -210,7 +210,7 @@ function adjustControls() {
 		try {
 			xhr.send();
 			if (xhr.status != 200) alert(`Ошибка ${xhr.status}: ${xhr.statusText}`);
-			else window.location.reload(); //alert('WiFi-сеть '+xhr.response+' была успешно удалена');
+			else window.location.reload();
 		}
 		catch(err) {
 			alert("Запрос не удался");
