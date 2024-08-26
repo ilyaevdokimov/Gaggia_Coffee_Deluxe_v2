@@ -1,14 +1,12 @@
-void startWiFi() { // Запуск собственной точки доступа Wi-Fi и подключение (при возможности) к существующей
+void startWiFi() { // Запуск собственной точки доступа Wi-Fi и подключение (при возможности) к существующей Wi-Fi сети
   WiFi.hostname("GAGGIA_Coffee-" + String((uint32_t)(ESP.getEfuseMac() >> 32), HEX)); // Формируем имя хоста
-  // Работаем в смешанном режиме (роутер + собственная точка доступа)
-  WiFi.mode(WIFI_AP_STA);
+  WiFi.mode(WIFI_AP_STA); // Работаем в смешанном режиме (роутер + собственная точка доступа)
   makeSoftAP();
   tryAvailableNetworks();
 }
 
-bool tryAvailableNetworks() {
-  String ssid;
-  String password;
+bool tryAvailableNetworks() { // Попытка соединения с какой-либо из сетей, реквизиты для доступа к которым сохранены пользователем во флеш-памяти контроллера
+  String ssid, password;
   bool connectionResult = false;
 
   preferences.begin("knownNetworks", false);
@@ -44,8 +42,7 @@ bool tryAvailableNetworks() {
   return connectionResult;
 }
 
-void makeSoftAP() {
-  WiFi.softAP(SoftAP_SSID, SoftAP_password); // Создаём точку доступа с именем и паролем из нативных значений соответствующих параметров
-  isSoftAP = true;
-  dnsServer.start();
+void makeSoftAP() { // Создание собственной точки доступа с именем и паролем из нативных значений соответствующих параметров
+  WiFi.softAP(SoftAP_SSID, SoftAP_password);
+  dnsServer.start(53, "*", WiFi.softAPIP()); // Для обслуживания Captive Portal
 }

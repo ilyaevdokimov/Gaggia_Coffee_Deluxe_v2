@@ -1,50 +1,59 @@
 <!DOCTYPE HTML>
 <html>
-<head>
+<head lang='ru'>
   <meta charset='UTF-8'>
-  <title>Кофеварка SSE - Ожидание</title>
+  <title>Кофеварка SSE - Подготовка к работе</title>
   <meta name='viewport' content='width=device-width, initial-scale=1'>
   <link rel='stylesheet' href='s1.css' />
 </head>
 <body>
-  <details>
-  <summary>Кофеварка SSE</summary>
-  <ul>
-	<li>РЕЖИМ: <span id='currentState'>?</span></li>
-	<li>NTC: <span id='ntc'>?</span></li>
-	<li>БОЙЛЕР: <span id='tcB'>?</span></li>	
-	<li>ГРУППА: <span id='tcG'>?</span></li>
-	<li>ВРЕМЯ ПРОЛИВА: <span id='passTime'>?</span></li>
-	<li>РАСХОД: <span id='waterStreamValue'>?</span></li>
-	<li>ВЕС: <span id='weight'>?</span></li>
-	<li>УРОВЕНЬ ВОДЫ: <span id='waterLevel'>?</span></li>
-	<li>ДИАГНОСТИКА: <span id='diag'>?</span></li>	
-	<li>ПАМЯТЬ: <span id='freeValue'>?</span></li>
-	
-  </ul>
-  </details>
-  <div class='content'>
-	<h1>Ожидание</h1>
-    <div class='cards'>
-	<div class='card'>
-		<p>Вес, г</p>
-			<span id='weight1'>...</span>
+	<details>
+		<summary>Кофеварка SSE</summary>
+		<ul>
+			<li>РЕЖИМ: <span id='currentState'>?</span></li>
+			<li>NTC: <span id='ntc'>?</span></li>
+			<li>БОЙЛЕР: <span id='tcB'>?</span></li>	
+			<li>ГРУППА: <span id='tcG'>?</span></li>
+			<li>ВРЕМЯ ПРОЛИВА: <span id='passTime'>?</span></li>
+			<li>РАСХОД: <span id='waterStreamValue'>?</span></li>
+			<li>ВЕС: <span id='weight'>?</span></li>
+			<li>УРОВЕНЬ ВОДЫ: <span id='waterLevel'>?</span></li>
+			<li>ДИАГНОСТИКА: <span id='diag'>?</span></li>	
+			<li>ПАМЯТЬ: <span id='freeValue'>?</span></li>
+		</ul>
+	</details>
+	<div class='content'>
+		<h1>Подготовка к работе</h1>
+		<div class='cards'>
+			<div class='box'>
+				<div class='percent'>
+					<div id='waterLevel1'>0</div>
+					<div>%</div>
+				</div>
+				<div id='water' class='water'>
+					<svg viewBox='0 0 560 20' class='water_wave water_wave_back'><use href='image.svg#wave'></use></svg>
+					<svg viewBox='0 0 560 20' class='water_wave water_wave_front'><use href='image.svg#wave'></use></svg>
+				</div>
+			</div>
+			<div class='card'>
+				<p>Вес, г</p>
+				<span id='weight1'>...</span>
+			</div>
+			<div class='card'>
+				<p>Тара</p>
+				<label class='switch'>
+					<input type='checkbox' onchange='toggleCheckbox(this)' id='btnTare'>
+					<span class='slider'></span>
+				</label>
+			</div>
+			<div class='card'>
+				<span><a href='cpSSE.html'>Старт</a></span>
+			</div>
+			<div class='card'>
+				<span><a href='stngsSSE.html'>Настройки</a></span>
+			</div>
+		</div>
 	</div>
-	<div class='card'>
-		<p>Сброс</p>
-			<label class='switch'>
-			<input type='checkbox' onchange='toggleCheckbox(this)' id='btnTare'>
-			<span class='slider'></span>
-		</label>
-	</div>
-	<div class='card'>
-		<span><a href='cpSSE.html'>Старт</a></span>
-	</div>
-	<div class='card'>
-		<span><a href='stngsSSE.html'>Настройки</a></span>
-	</div>
-  </div>
-    </div>
 </body>
 <script>
 if (!!window.EventSource) {
@@ -54,6 +63,8 @@ if (!!window.EventSource) {
   setVal('ntc', res[0]);
   setVal('tcG', res[1]);
   setVal('waterLevel', res[2]);
+  setVal('waterLevel1', res[2]);
+  document.getElementById('water').style.transform='translate(0'+','+(100-res[2])+'%)';
   setVal('currentState', res[3]);
   setVal('passTime', res[4]);
   setVal('waterStreamValue', res[5]);
@@ -71,12 +82,8 @@ function setVal(id, val) {
 
 function toggleCheckbox(element) {
   var xhr = new XMLHttpRequest();
-  const col = document.getElementsByTagName('input');
-  for (let i = 0; i < col.length; i++) {
-    col[i].disabled = element.checked;
-  }
-  document.getElementById(element.id).disabled = false;
   xhr.open('GET', '/updatedata?output='+element.id+'&state='+element.checked, true);
+  setTimeout(() => { element.checked = false; }, 200);
   xhr.send();
 }
 </script>

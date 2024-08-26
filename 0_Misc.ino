@@ -1,6 +1,5 @@
 // Подпрограмма выполнения аппаратного сброса
 void doHardReset() {
-  // Код сброса параметров на значения по умолчанию
   preferences.begin("gSettings", false); // Открываем настройки на запись
   // Сбрасываем значения текстовых параметров:
   if (preferences.isKey("P1")) preferences.putString("P1", String(ESPRESSO_TEMPERATURE));
@@ -12,37 +11,112 @@ void doHardReset() {
   if (preferences.isKey("P7")) preferences.putString("P7", String(SOFT_AP_SSID));
   if (preferences.isKey("P8")) preferences.putString("P8", String(SOFT_AP_PASSWORD));
   preferences.end(); // Закрываем настройки
-  delay(500);
+  delay(500); // Да, это delay. Ничего страшного: вещь разовая, потерпим
 }
 
-// Функция проверки состояния. Должна работать очбыстро, поскольку вызывается из прерывания (измеренное значение порядка 20 мкс)
-uint8_t checkState(bool passButtonPressed, bool steamButtonPressed, bool steamValveOpen, bool isHard) {
-  if (currentState == Diagnostics) return Diagnostics; // Если мы в режиме диагностки, то какие бы аппаратные кнопки мы не нажимали, всё равно остаёмся в ржиме диагностики
-
-  // Предполагается, что пользователь в здравом уме и не будет выключать пар, не закрыв предварительно кран пара
-  if (isHard == true && steamValveOpen && currentState == Steam) { // Если был режим пара, и прилетело аппаратное изменение - то оно от крана, а не от чего-нибудь другого
-    steamButtonPressed = true; // В случае, если аппаратная кнопка пара нажата, тут и так будет true. А если нет, но была нажата экранная кнопка - режим пара не отключится
+// Функция проверки состояния
+State checkState() {
+  if (currentState == Diagnostics) return Diagnostics; // Если мы в режиме диагностки, то какие бы аппаратные кнопки мы не нажимали, всё равно остаёмся в режиме диагностики
+  // Да, это можно написать компактней. Но я считаю, что так лучше читается и легче вносить правки:
+  switch (stateChangeSource) {  // Таблица новых состояний в зависимости от старого состояния и источника его изменения
+    case HardPassButton:
+      if (!digitalRead(PASS_BUTTON)) { // Кнопка Пролива нажата
+        if (currentState == Wait) newState = Pass;
+        if (currentState == Pass) newState = Pass;
+        if (currentState == Steam) newState = Steam;
+        if (currentState == SteamValve) newState = Drain;
+        if (currentState == Drain) newState = Drain;
+        if (currentState == Booster) newState = Booster;
+      }
+      else { // Кнопка Пролива отжата
+        if (currentState == Wait) newState = Wait;
+        if (currentState == Pass) newState = Wait;
+        if (currentState == Steam) newState = Steam;
+        if (currentState == SteamValve) newState = SteamValve;
+        if (currentState == Drain) newState = SteamValve;
+        if (currentState == Booster) newState = Booster;
+      }
+      break;
+    case HardSteamButton:
+      if (!digitalRead(STEAM_BUTTON)) { // Кнопка Пара нажата
+        if (currentState == Wait) newState = Steam;
+        if (currentState == Pass) newState = Pass;
+        if (currentState == Steam) newState = Steam;
+        if (currentState == SteamValve) newState = Booster;
+        if (currentState == Drain) newState = Drain;
+        if (currentState == Booster) newState = Booster;
+      }
+      else { // Кнопка Пара отжата
+        if (currentState == Wait) newState = Wait;
+        if (currentState == Pass) newState = Pass;
+        if (currentState == Steam) newState = Wait;
+        if (currentState == SteamValve) newState = SteamValve;
+        if (currentState == Drain) newState = Drain;
+        if (currentState == Booster) newState = SteamValve;
+      }
+      break;
+    case SteamValveButton: // Кран Пара...
+      delay(10); // Даём крану очувствоваться. Мы не очень-то доверяем сигналам от него, поэтому нужно перепроверять:
+      if (!digitalRead(STEAM_VALVE_BUTTON)) { // ...открыт
+        if (currentState == Wait) newState = SteamValve;
+        if (currentState == Pass) newState = Drain;
+        if (currentState == Steam) newState = Booster;
+        if (currentState == SteamValve) newState = SteamValve;
+        if (currentState == Drain) newState = Drain;
+        if (currentState == Booster) newState = Booster;
+      }
+      else { // ...закрыт
+        if (currentState == Wait) newState = Wait;
+        if (currentState == Pass) newState = Pass;
+        if (currentState == Steam) newState = Steam;
+        if (currentState == SteamValve) newState = Wait;
+        if (currentState == Drain) newState = Pass;
+        if (currentState == Booster) newState = Steam;
+      }
+      break;
+    case SoftPassButtonOn: // Экранная кнопка Пролива нажата
+      if (currentState == Wait) newState = Pass;
+      if (currentState == Pass) newState = Pass;
+      if (currentState == Steam) newState = Steam;
+      if (currentState == SteamValve) newState = Drain;
+      if (currentState == Drain) newState = Drain;
+      if (currentState == Booster) newState = Booster;
+      break;
+    case SoftPassButtonOff: // Экранная кнопка Пролива отжата
+      if (currentState == Wait) newState = Wait;
+      if (currentState == Pass) newState = Wait;
+      if (currentState == Steam) newState = Steam;
+      if (currentState == SteamValve) newState = SteamValve;
+      if (currentState == Drain) newState = SteamValve;
+      if (currentState == Booster) newState = Booster;
+      break;
+    case SoftSteamButtonOn: // Экранная кнопка Пара нажата
+      if (currentState == Wait) newState = Steam;
+      if (currentState == Pass) newState = Pass;
+      if (currentState == Steam) newState = Steam;
+      if (currentState == SteamValve) newState = Booster;
+      if (currentState == Drain) newState = Drain;
+      if (currentState == Booster) newState = Booster;
+      break;
+    case SoftSteamButtonOff: // Экранная кнопка Пара отжата
+      if (currentState == Wait) newState = Wait;
+      if (currentState == Pass) newState = Pass;
+      if (currentState == Steam) newState = Wait;
+      if (currentState == SteamValve) newState = SteamValve;
+      if (currentState == Drain) newState = Drain;
+      if (currentState == Booster) newState = SteamValve;
+      break;
+    case None: // Не должно такого быть, просто на всякий случай
+      newState = currentState;
+      break;
+    default: // Если что-то пошло не так, переходим в режим Ожидания
+      newState = Wait;
+      break;
   }
-
-  // Определяем новое состояние:
-  // Только кнопка "Пролив". При включённой кнопке пара режим работать не будет!
-  if (passButtonPressed & !steamButtonPressed & !steamValveOpen) newState = Pass;
-  // Только кнопка "Пар" - используется для нагрева бойлера до заданной температуры и её поддержания
-  else if (steamButtonPressed & !steamValveOpen & !passButtonPressed) newState = Steam;
-  // Только кран пара - ну открыли и открыли, ничего не надо делать
-  else if (steamValveOpen & !steamButtonPressed & !passButtonPressed) newState = SteamValve;
-  // Кнопка "Пролив" и кран пара - делаем дренаж в стимер. Только при отключенном режиме пара!
-  else if (passButtonPressed & steamValveOpen & !steamButtonPressed) newState = Drain;
-  // Кнопка "Пар" и кран пара - мы взбиваем молоко, нам нужен бустер
-  else if (steamButtonPressed & steamValveOpen & !passButtonPressed) {
-    newState = Booster;
-  }
-  // Во всех остальных случаях работает режим "Ожидание"
-  else newState = Wait;
-
   return newState;
 }
 
+// Подпрограмма приведения исполнительных устройств в соответствие с новым состоянием
 void changeState() {
   timerWrite(autoOFFtimer, 0);  // Сброс таймера автоотключения
   digitalWrite(PUMP, LOW); // Переход из одного состояния в другое всегда должен происходить через отключение помпы. Новый режим включит её при необходимости
@@ -94,11 +168,12 @@ void changeState() {
   }
 }
 
+// Подпрограмма обновления WEB-интерфейса через механизм SSE
 void updateControlPanel() {
   uint8_t steamLowerTreshold = steamTemperature - 4; // Нижний предел температуры пара для индикации
   uint8_t steamUpperTreshold = steamTemperature + 10; // Верхний предел температуры пара для индикации
 
-  // Инкрементируем служебные переменные:
+  // Инкрементируем служебные переменные (к обновлению интерфейса они отношения не имеют, просто здесь это сделать удобно):
   if (currentState == Booster) { // Временные интервалы не точные, но для такой цели сойдёт
     if (boosterTimer < BOOSTER_SWAP_TIMEOUT) boosterTimer += PAGE_REFRESH_INTERVAL;
     else isPumpTimeOut = false;
@@ -106,7 +181,7 @@ void updateControlPanel() {
   }
 
   if (waterLevel == 0) changeState(); // При недостаточном уровне воды во время пролива выключаем помпу и сигнализируем звуком и светом о низком уровне
-  else passTime = passTimeInMillis / 1000; // Если помпа работает, считаем время пролива
+  else passTime = passTimeInMillis / 1000; // Если помпа работает, инкриментируем время пролива
 
   // Подготавливаем и отсылаем страничке значения с датчиков:
   temperature = getNTCtemperature(); // Обновляем значение глобальной переменной, чтобы ПИД мог брать оттуда актуальные данные
@@ -114,7 +189,7 @@ void updateControlPanel() {
   groupTemperature = kTCgroup.getTempInt(); // Температура группы
   waterLevel = getWaterLevel(loopCounter++); // Актуализируем уровень воды в танкере (это занимает порядка 15 мс):
   if (loopCounter >= WATER_LEVEL_BUFFER_SIZE) loopCounter = 0; // Сбрасываем счётчик при переполнении
-  currentWeight = myRound(scale.get_units(1)); // Вес напитка
+  currentWeight = notMyRound(scale.get_units(1)); // Вес напитка
   // Сигнализируем о попадании температуры в заданный диапазон при нахождении:
   uint16_t targetTemperature = (boilerTemperature + groupTemperature) / 2; // Усреднённая температура бойлера и группы
   // в режиме пара или бустера
@@ -127,7 +202,8 @@ void updateControlPanel() {
   events.send(ss.c_str(), "values", millis()); // Отправляем данные на страницы, подписанные на наше событие SSE
 }
 
-uint8_t getWaterLevel(uint8_t counter) { // Определяет усреднённый уровень воды в процентах. Возвращает корректное значение после WATER_LEVEL_BUFFER_SIZE вызовов, когда накопит данные
+// Функция определения усреднённого уровня воды в процентах. Возвращает корректное значение после WATER_LEVEL_BUFFER_SIZE вызовов, когда накопит данные
+uint8_t getWaterLevel(uint8_t counter) {
   uint8_t result = 200; // Индикация проблемы с индексацией буфера. Так получиться не должно, просто на всякий случай
   if (counter < WATER_LEVEL_BUFFER_SIZE) { // Если мы в границах буфера
     waterLevels[counter] = waterLevelSensor.readRangeSingleMillimeters(); // Читаем очередное значение (оно колеблется в пределах пары миллиметров) и записываем его в буфер для усреднения
@@ -145,6 +221,7 @@ uint8_t getWaterLevel(uint8_t counter) { // Определяет усреднё�
   return result; // Если вернётся 200, значит что-то не так с индексацией буфера
 }
 
+// Подпрограмма формирования пакета данных SSE
 void makeSendString(String& s) { // Формирование строки для объекта AsyncEventSource
   s += String(temperature, 1); // Темпрература с датчика регулирования (сейчас это NTC-термистор) 0
   s += "¿";
@@ -177,15 +254,18 @@ void makeSendString(String& s) { // Формирование строки для
   s.trim();
 }
 
-float myRound(float var) { // Функция округления до десятых долей. Я её списал, если что
+// Функция округления до десятых долей. Я её списал, если что
+float notMyRound(float var) {
   float value = (int)(var * 10 + .5);
   return (float)value / 10;
 }
 
+// Подпрограмм управления подсветкой танкера и рабочей зоны
 void lightIndication() { // Используем аппаратный фэйдинг
-  if (currentState != Diagnostics) { // В режиме диагностики автоматическое управление светом должно быть выключено, иначе мы ничего не заметим
+  if (currentState != Diagnostics) { // В режиме диагностики автоматическое управление светом должно быть выключено, иначе мы ничего не сможем диагностировать
     if (isEspressoHeatingOn) { // Если нагрев включен,
-      if (isTemperatureReached) ledcWrite(TANK_LED, LEDC_TARGET_DUTY); // и температура в приемлемом диапазоне, светим на постоянку
+      ledcWrite(WORKSPACE_LED, LEDC_TARGET_DUTY); // врубаем на полную освещение в рабочей зоне и проверяем температуру:
+      if (isTemperatureReached) ledcWrite(TANK_LED, LEDC_TARGET_DUTY); // Если температура в приемлемом диапазоне, светим на постоянку
       else { // В противном случае "дышим":
         if (isFadeEnded) { // Проверяем, не закончилось ли затухание/зажигание
           isFadeEnded = false; // Сбрасываем флаг
@@ -198,12 +278,12 @@ void lightIndication() { // Используем аппаратный фэйди
     }
     else { // Выключили нагрев
       ledcWrite(TANK_LED, LEDC_AUTOOFF_DUTY); // Светим вполсилы в танкере
-      ledcWrite(WORKSPACE_LED, LOW); // Выключаем подсветку рабочей зоны
+      ledcWrite(WORKSPACE_LED, LEDC_START_DUTY); // Слегка подсвечиваем рабочую область
     }
   }
 }
 
-// Подстановка значений в плейсхолдеры на страницах, этого требующих (например, на странице настроек)
+// Функция подстановки значений в плейсхолдеры на страницах, этого требующих (например, на странице настроек)
 String processor(const String& var) {
   if (var == "P1") return P1;
   if (var == "P2") return P2;
@@ -222,7 +302,7 @@ String processor(const String& var) {
       if (file) { // Если удалось
         while (file.available()) {
           String current = file.readStringUntil('\n'); // Построчно читаем его содержимое
-          if (preferences.isKey(current.c_str())) { // Если очередная строка есть в соответствующем разделе настроек, формиируем очередную порцию разметки:
+          if (preferences.isKey(current.c_str())) { // Если очередная строка есть в соответствующем разделе настроек, формиируем порцию разметки:
             htmlResult += WiFi.SSID() == current ? "<li class='onAir'>" : "<li>";
             htmlResult += current;
             if (WiFi.SSID() == current) {
@@ -241,7 +321,16 @@ String processor(const String& var) {
   }
 }
 
-// Вычисление усреднённой температуры NTC-термистора
+// Процедура записи очередного значения NTC-термистора в буфер для усреднения
+void getNTCvalue() {
+  if (dataGrabberLoopCounter < WATER_LEVEL_BUFFER_SIZE) { // Если мы в границах буфера
+    rawNTCvalues[dataGrabberLoopCounter] = analogReadMilliVolts(NTC_PIN); // Записываем значение НАПРЯЖЕНИЯ в милливольтах с указанного пина в кольцевой буфер
+    dataGrabberLoopCounter++;
+    if (dataGrabberLoopCounter == WATER_LEVEL_BUFFER_SIZE) dataGrabberLoopCounter = 0; // Сбрасываем счётчик при переполнении
+  }
+}
+
+// Функция вычисления усреднённой температуры NTC-термистора
 double getNTCtemperature() {
   uint32_t sumMV = 0;
   for (uint8_t i = 0; i < WATER_LEVEL_BUFFER_SIZE; i++) {
@@ -259,6 +348,7 @@ double getNTCtemperature() {
   return (double)readingMV;
 }
 
+// Подпрограмма инициализации текстового представления параметров значениями, сохранёнными пользователем во флеш-памяти контроллера
 void initParams() { // Актуализируем глобальные переменные, хранящие текстовые значения параметров:
   preferences.begin("gSettings", true); // Открываем настройки на чтение
   if (preferences.isKey("P1")) P1 = preferences.getString("P1");
@@ -270,9 +360,10 @@ void initParams() { // Актуализируем глобальные пере�
   if (preferences.isKey("P7")) P7 = preferences.getString("P7");
   if (preferences.isKey("P8")) P8 = preferences.getString("P8");
   preferences.end(); // Закрываем настройки
-  // Теперь в переменных P1...Pn либо текстовые значения параметров, либо значения зашитые в прошивке
+  // Теперь в переменных P1...Pn либо текстовые значения параметров, хранящиеся во флеш-памяти, либо значения зашитые в прошивке
 }
 
+// Подпрограмма привелдения нативных параметров в соответствие со значениями их текстовых представлений
 void updateNativeParameterValues() {
   if (isParamterChanges[0] == true) { // Температура эспрессо
     setTemp = P1.toDouble(); // Берём значение из переменной, хранящей значение параметра...

@@ -1,12 +1,12 @@
 <!DOCTYPE HTML>
-<html>
+<html lang='ru'>
 <head>
   <meta charset='UTF-8'>
   <title>Кофеварка SSE - Настройки</title>
   <meta name='viewport' content='width=device-width, initial-scale=1'>
   <link rel='stylesheet' href='s1.css'>
 </head>
-<body onload="adjustControls()">
+<body onload='adjustControls()'>
   <details>
 	<summary>Кофеварка SSE</summary>
 	<button onclick='window.location.href="check.html"'>Диагностика</button>
@@ -196,7 +196,7 @@ function adjustControls() {
 			else window.location.reload();
 		}
 		catch(err) {
-			alert("Запрос не удался");
+			alert('Запрос не удался');
 		}
 		modal.close();
 		isModalOpen = false;
@@ -213,7 +213,7 @@ function adjustControls() {
 			else window.location.reload();
 		}
 		catch(err) {
-			alert("Запрос не удался");
+			alert('Запрос не удался');
 		}
 		modal2delete.close();
 		isModalOpen = false;

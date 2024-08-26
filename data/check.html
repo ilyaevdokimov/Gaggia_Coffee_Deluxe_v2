@@ -1,10 +1,10 @@
 <!DOCTYPE HTML>
-<html>
+<html lang='ru'>
 <head>
 	<meta charset='UTF-8'>
 	<title>Кофеварка SSE - Диагностика</title>
 	<meta name='viewport' content='width=device-width, initial-scale=1'>
-	<link rel='stylesheet' href="s1.css" />
+	<link rel='stylesheet' href='s1.css' />
 </head>
 <body>
 	<details>
@@ -25,6 +25,16 @@
 	<div class='content'>
 		<h1>Диагностика</h1>
 		<div class='cards'>
+			<div class='box'>
+				<div class='percent'>
+					<div id='waterLevel1'>0</div>
+					<div>%</div>
+				</div>
+				<div id='water' class='water'>
+					<svg viewBox='0 0 560 20' class='water_wave water_wave_back'><use href='image.svg#wave'></use></svg>
+					<svg viewBox='0 0 560 20' class='water_wave water_wave_front'><use href='image.svg#wave'></use></svg>
+				</div>
+			</div>
 			<div class='card'>
 				<p>Помпа</p>
 				<label class='switch'>
@@ -54,20 +64,20 @@
 				</label>
 			</div>
 			<div class='card'>
-				<p>Свет танкер</p>
+				<p>Свет танкера</p>
 				<label class='switch'>
 					<input type='checkbox' onchange='toggleCheckbox(this)' id='btnTankerLight'>
 					<span class='slider'></span>
 				</label>			</div>
 			<div class='card'>
-				<p>Свет группа</p>
+				<p>Свет группы</p>
 				<label class='switch'>
 					<input type='checkbox' onchange='toggleCheckbox(this)' id='btnWorkspaceLight'>
 					<span class='slider'></span>
 				</label>
 			</div>
 			<div class='card'>
-				<span><a href="/">Ожидание</a></span>
+				<span><a href='/'>Ожидание</a></span>
 			</div>
 			<div class='card'>
 				<span><a href='cpSSE.html'>Старт</a></span>
@@ -75,6 +85,8 @@
 		</div>
 	</div>
 <script>
+const col = document.getElementsByTagName('input');
+
 if (!!window.EventSource) {
  var src = new EventSource('/events');
  src.addEventListener('values', function(e) {
@@ -82,6 +94,8 @@ if (!!window.EventSource) {
   setVal('ntc', res[0]);
   setVal('tcG', res[1]);
   setVal('waterLevel', res[2]);
+  setVal('waterLevel1', res[2]);
+  document.getElementById('water').style.transform='translate(0'+','+(100-res[2])+'%)';
   setVal('currentState', res[3]);
   setVal('passTime', res[4]);
   setVal('waterStreamValue', res[5]);
@@ -98,7 +112,6 @@ function setVal(id, val) {
 
 function toggleCheckbox(element) {
   var xhr = new XMLHttpRequest();
-  const col = document.getElementsByTagName('input');
   for (let i = 0; i < col.length; i++) {
     col[i].disabled = element.checked;
   }
@@ -108,7 +121,7 @@ function toggleCheckbox(element) {
 	xhr.send();
   }
   catch(err) {
-	alert("Запрос не удался");
+	alert('Запрос не удался');
   }
   if (xhr.status != 200) alert(`Ошибка ${xhr.status}: ${xhr.statusText}`);
 }

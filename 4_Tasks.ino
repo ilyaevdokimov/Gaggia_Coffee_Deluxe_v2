@@ -25,11 +25,12 @@ void HeaterControl(void *pvParameters) { // Задача управления в
             digitalWrite(PUMP, HIGH);
             vTaskDelay(130);
             digitalWrite(PUMP, LOW);
+            vTaskDelay(1);
             boosterSwapTimer = 0;
           }
         }
       }
-      else { // Режим эспрессо
+      else { // Режим эспрессо (да,здесь будут "магические числа"!)
         // Начинаем регулировать
         if (currentState == Pass) { // Если начали пролив, врубаем нагрев на постоянку, ибо стынет не по-детски
           timeAtTemp = 0;
@@ -45,11 +46,11 @@ void HeaterControl(void *pvParameters) { // Задача управления в
             case 81 ... 85:
               setTemp = P1.toDouble(); // Греемся в нормальном темпе
               break;
-            case 86 ... 94:
+            case 86 ... 93:
               setTemp = P1.toDouble() - 3.0; // Притормарживаем нагрев
               break;
-            default: // Держим сотню
-              setTemp = 100.0;
+            default: // Держим чуть меньше сотни
+              setTemp = 98.0;
               break;
           }
           espressoPID.run();

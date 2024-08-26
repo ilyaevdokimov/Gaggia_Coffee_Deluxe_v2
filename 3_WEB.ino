@@ -8,7 +8,7 @@ class CaptiveRequestHandler : public AsyncWebHandler { // Обработчик �
     }
 
     void handleRequest(AsyncWebServerRequest *request) {
-      request->send(LittleFS, "/");
+      request->send(LittleFS, "/index.html"); // Страница, автоматически отправляемая клиенту при подсоединении к собственной точке доступа
     }
 };
 
@@ -16,32 +16,39 @@ void startWEBServer() { // Запуск HTTP-сервера с обработч�
 
   // Обработчики обращений к WEB-серверу:
 
+  server.serveStatic("/s1.css", LittleFS, "/s1.css"); // Стили
+
+  server.serveStatic("/image.svg", LittleFS, "/image.svg"); // Анимация для индикатора уровня воды
+
+  server.serveStatic("/stngsSSE.html", LittleFS, "/stngsSSE.html").setTemplateProcessor(processor); // Настройки
+  
   server.on("/", HTTP_GET, [](AsyncWebServerRequest * request) { // Главная
     if (isEspressoHeatingOn) isAutoOFFneeded = true; // Принудительно выполняем процедуру автоотключения (только если нагрев был включен)
-    currentState = Wait; // Всегда устанавливаем режим ожидания, вне зависимости от того, что там нажато на кофеварке
-    newState = currentState;
+    // Всегда устанавливаем режим ожидания, вне зависимости от того, что там нажато на кофеварке:
+    newState = Wait;
+    currentState = Wait;
+    changeState();
     request->send(LittleFS, "/index.html");
   });
 
-  server.serveStatic("/s1.css", LittleFS, "/s1.css"); // Стили
-
-  server.serveStatic("/stngsSSE.html", LittleFS, "/stngsSSE.html").setTemplateProcessor(processor); // Настройки
-
   server.on("/cpSSE.html", HTTP_GET, [](AsyncWebServerRequest * request) { // Панель управления
     isEspressoHeatingOn = true; // Чтобы сменился режим и начался нагрев
-    // Реинициализируем фэйдинг:
-    isFadeEnded = false;
-    isFadeOn = true;
-    ledcFadeWithInterrupt(TANK_LED, LEDC_TARGET_DUTY, LEDC_START_DUTY, LEDC_FADE_TIME, LED_FADE_ISR); // Запускаем фэйдинг
-    ledcWrite(WORKSPACE_LED, LEDC_TARGET_DUTY); // Врубаем на полную освещение в рабочей зоне
 
-    timerStop(autoOFFtimer); // Отсанвливаем таймер автоотключения
+    timerStop(autoOFFtimer); // Останвливаем таймер автоотключения
     timerWrite(autoOFFtimer, 0); // Сбрасываем счётчик
     timerRestart(autoOFFtimer); // Перезапускаем таймер (на случай, если он уже срабатывал - он ведь однократный)
     timerStart(autoOFFtimer); // Запускаем таймер
 
-    currentState = SteamValve; // Устанавливаем какой-нибудь странный режим, чтобы задача отслеживания могла заменить его на актуальный
-    isStateChanged = true;
+    // Всегда устанавливаем режим ожидания, вне зависимости от того, что там нажато на кофеварке:
+    newState = Wait;
+    currentState = Wait;
+    changeState();
+    
+    // Реинициализируем фэйдинг:
+    isFadeEnded = false;
+    isFadeOn = true;
+    ledcFadeWithInterrupt(TANK_LED, LEDC_TARGET_DUTY, LEDC_START_DUTY, LEDC_FADE_TIME, LED_FADE_ISR); // Запускаем фэйдинг
+
     request->send(LittleFS, "/cpSSE.html");
   });
 
@@ -53,9 +60,8 @@ void startWEBServer() { // Запуск HTTP-сервера с обработч�
   });
 
   server.on("/updatedata", HTTP_GET, [] (AsyncWebServerRequest * request) { // GET-запрос на изменение состояние элемента управления на странице
-    String controlID;
-    String controlValue;
-    String json = "";
+    String controlID, controlValue, json = "";
+
     // Получаем значение из GET-запроса <ESP_IP>/updatedata?output=<controlID>&state=<controlValue>
     if (request->hasParam("output") && request->hasParam("state")) { // Пытаемся прочесть параметры
       controlID = request->getParam("output")->value();
@@ -65,18 +71,18 @@ void startWEBServer() { // Запуск HTTP-сервера с обработч�
 
     if (json != "") request->send(400, "application/json", json); // Отсылаем сообщение об ошибке в случае отсутствия нужных параметров
     else {
-      if (controlID == "btnSteam") { // Программное (экранной кнопкой) переключение режима пара
-        if (currentState != checkState(!digitalRead(PASS_BUTTON), controlValue == "true" ? true : false, !digitalRead(STEAM_VALVE_BUTTON), false)) changeState();
+      if (controlID == "btnLivePass") { // Программное (экранной кнопкой) переключение пролива
+        if (controlValue == "true") stateChangeSource = SoftPassButtonOn;
+        else stateChangeSource = SoftPassButtonOff;
       }
-      else if (controlID == "btnLivePass") { // Программное (экранной кнопкой) переключение пролива
-        if (currentState == Diagnostics) digitalWrite(PUMP, controlValue == "true" ? HIGH : LOW); // В режиме диагностики просто переключаем состояние помпы, тут всё просто
-        else { // Во всех остальных режимах вычисляем новое состояние и в случае несовпадения сразу же изменяем - мы же не в прерывании...
-          if (currentState != checkState(controlValue == "true" ? true : false, !digitalRead(STEAM_BUTTON), !digitalRead(STEAM_VALVE_BUTTON), false)) changeState();
-        }
+      else if (controlID == "btnSteam") { // Программное (экранной кнопкой) переключение режима пара
+        if (controlValue == "true") stateChangeSource = SoftSteamButtonOn;
+        else stateChangeSource = SoftSteamButtonOff;
       }
       else if (controlID == "btnTare") { // Тарируем весы
         scale.tare(1); // Сбрасываем значение на весах за 1 проход, чтобы побыстрее (при значении по-умолчанию выполняется больше секунды!)
       }
+      // Работа со страницы настроек:
       else if (controlID == "btnPass") { // Проверяем помпу
         if (currentState == Diagnostics) digitalWrite(PUMP, controlValue == "true" ? HIGH : LOW);
       }
@@ -106,7 +112,7 @@ void startWEBServer() { // Запуск HTTP-сервера с обработч�
   });
 
   server.addHandler(&events);
-  if (isSoftAP) server.addHandler(new CaptiveRequestHandler()).setFilter(ON_AP_FILTER); // Обработчик CaptivePortal. Действителен только в режиме AP
+  server.addHandler(new CaptiveRequestHandler()).setFilter(ON_AP_FILTER); // Обработчик CaptivePortal. Действителен только в режиме AP
 
   server.on("/updatesettings", HTTP_GET, [] (AsyncWebServerRequest * request) { // Обновление параметров со страницы настроек
     preferences.begin("gSettings", false);
