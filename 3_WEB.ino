@@ -16,12 +16,14 @@ void startWEBServer() { // Запуск HTTP-сервера с обработч�
 
   // Обработчики обращений к WEB-серверу:
 
+  server.serveStatic("/favicon.svg", LittleFS, "/favicon.svg"); // favicon
+
   server.serveStatic("/s1.css", LittleFS, "/s1.css"); // Стили
 
   server.serveStatic("/image.svg", LittleFS, "/image.svg"); // Анимация для индикатора уровня воды
 
   server.serveStatic("/stngsSSE.html", LittleFS, "/stngsSSE.html").setTemplateProcessor(processor); // Настройки
-  
+
   server.on("/", HTTP_GET, [](AsyncWebServerRequest * request) { // Главная
     if (isEspressoHeatingOn) isAutoOFFneeded = true; // Принудительно выполняем процедуру автоотключения (только если нагрев был включен)
     // Всегда устанавливаем режим ожидания, вне зависимости от того, что там нажато на кофеварке:
@@ -43,7 +45,7 @@ void startWEBServer() { // Запуск HTTP-сервера с обработч�
     newState = Wait;
     currentState = Wait;
     changeState();
-    
+
     // Реинициализируем фэйдинг:
     isFadeEnded = false;
     isFadeOn = true;
@@ -71,7 +73,10 @@ void startWEBServer() { // Запуск HTTP-сервера с обработч�
 
     if (json != "") request->send(400, "application/json", json); // Отсылаем сообщение об ошибке в случае отсутствия нужных параметров
     else {
-      if (controlID == "btnLivePass") { // Программное (экранной кнопкой) переключение пролива
+      if (controlID == "btnUseAsStowage") { // Установка целевой массы напитка для разового пролива
+        runonceTargetWeight = 2 * (controlValue).toFloat(); // Используем стандартный Brew Ratio = 2
+      }
+      else if (controlID == "btnLivePass") { // Программное (экранной кнопкой) переключение пролива
         if (controlValue == "true") stateChangeSource = SoftPassButtonOn;
         else stateChangeSource = SoftPassButtonOff;
       }
@@ -92,13 +97,13 @@ void startWEBServer() { // Запуск HTTP-сервера с обработч�
       else if (controlID == "btnBuzzer") { // Проверяем динамик
         if (currentState == Diagnostics) digitalWrite(SOUND_INDICATION, controlValue == "true" ? LOW : HIGH);
       }
-      else if (controlID == "btnHeating") { // Тестируем нагрев (осторожно! клнтроля температуры нет, можно перегреть!)
+      else if (controlID == "btnHeating") { // Тестируем нагрев (осторожно! контроля температуры нет, можно перегреть!)
         if (currentState == Diagnostics) digitalWrite(HEATING, controlValue == "true" ? temperature < 150 : LOW); // Хоть какая-то (150 градусов) защита от перегрева
       }
-      else if (controlID == "btnTankerLight") { // Проеряем работу подстветки танкера с водой
+      else if (controlID == "btnTankerLight") { // Проверяем работу подстветки танкера с водой
         ledcWrite(TANK_LED, controlValue == "true" ? LEDC_TARGET_DUTY : 0);
       }
-      else if (controlID == "btnWorkspaceLight") { // Проеряем работу подстветки рабочей области
+      else if (controlID == "btnWorkspaceLight") { // Проверяем работу подстветки рабочей области
         ledcWrite(WORKSPACE_LED, controlValue == "true" ? LEDC_TARGET_DUTY : 0);
       }
       request->send(200, "text/plain", "OK");
@@ -185,6 +190,14 @@ void startWEBServer() { // Запуск HTTP-сервера с обработч�
         isParamterChanges[7] = true;
       }
     }
+    if (request->hasParam("p9")) {
+      String newP9 = request->getParam("p9")->value();
+      if (newP9 != P9) {
+        preferences.putString("P9", newP9);
+        P9 = newP9;
+        isParamterChanges[8] = true;
+      }
+    }
     preferences.end(); // Закрываем настройки
 
     updateNativeParameterValues(); // Обновляем нативные значения параметров
@@ -251,6 +264,13 @@ void startWEBServer() { // Запуск HTTP-сервера с обработч�
       preferences.end(); // Закрываем настройки
       request->send(200, "text/plain", SSID2delete);
     }
+  });
+
+  server.on("/softreset", HTTP_GET, [] (AsyncWebServerRequest * request) { // Програмный сброс параметров
+    doHardReset();
+    request->send(200, "text/plain", "OK");
+    delay(33);
+    ESP.restart();
   });
 
   ElegantOTA.begin(&server); // Запуск сервиса обновления по воздуху ElegantOTA

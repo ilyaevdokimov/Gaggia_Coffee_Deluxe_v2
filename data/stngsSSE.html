@@ -1,15 +1,17 @@
 <!DOCTYPE HTML>
 <html lang='ru'>
 <head>
-  <meta charset='UTF-8'>
-  <title>Кофеварка SSE - Настройки</title>
-  <meta name='viewport' content='width=device-width, initial-scale=1'>
-  <link rel='stylesheet' href='s1.css'>
+	<meta charset='UTF-8'>
+	<title>Кофеварка SSE - Настройки</title>
+	<meta name='viewport' content='width=device-width, initial-scale=1'>
+	<link rel='stylesheet' href='s1.css'>
+	<link rel="icon" type="image/svg+xml" href="favicon.svg">
 </head>
 <body onload='adjustControls()'>
   <details>
 	<summary>Кофеварка SSE</summary>
-	<button onclick='window.location.href="check.html"'>Диагностика</button>
+	<button onclick='window.location.href="check.html"'>Диагностика</button>&nbsp;
+	<button id='softResetBtn'>Сброс</button>
   </details>
   <div class='content'>
 	<h1>Настройки</h1>
@@ -51,7 +53,21 @@
 	<label for='targetWeight'>Пролив до достижения веса:</label>
 	<input type='text' id='targetWeight' value='%P5%' onkeyup='validateMe(this)'>
 	<span>грамм</span></p>
-	</p>
+	<p>
+	<label for='preemptiveWeightValue'>Упреждающий вес:</label>
+	<input type='range' id='preemptiveWeightValue' min='0' max='8' step='1' value='%P9%' list='preemptiveWeightOptions' onchange='redraw(this,"selectedPreemptiveWeightValue")'>
+	<span id='selectedPreemptiveWeightValue'>%P9%</span><span> грамм</span></p>
+	<datalist id='preemptiveWeightOptions'>
+		<option value='0'>0</option>
+		<option value='1'>1</option>
+		<option value='2'>2</option>
+		<option value='3'>3</option>
+		<option value='4'>4</option>
+		<option value='5'>5</option>
+		<option value='6'>6</option>
+		<option value='7'>7</option>
+		<option value='8'>8</option>
+	</datalist>
 	<p>
 	<label for='steamTemperatureValue'>Температура бойлера для пара:</label>
 	<input type='range' id='steamTemperatureValue' min='120' max='145' step='5' value='%P2%' list='steamTemperatureOptions' onchange='redraw(this,"selectedSteamTValue")'>
@@ -66,9 +82,10 @@
 	</datalist>
 	<p>
 	<label for='valveTimeValue'>Продолжительность сброса давления:</label>
-	<input type='range' id='valveTimeValue' min='1' max='9' step='1' value='%P3%' list='valveTimeOptions' onchange='redraw(this,"selectedValveTValue")'>
+	<input type='range' id='valveTimeValue' min='0' max='9' step='1' value='%P3%' list='valveTimeOptions' onchange='redraw(this,"selectedValveTValue")'>
 	<span id='selectedValveTValue'>%P3%</span><span> секунд</span></p>
 	<datalist id='valveTimeOptions'>
+		<option value='0'>0</option>
 		<option value='1'>1</option>
 		<option value='2'>2</option>
 		<option value='3'>3</option>
@@ -80,7 +97,7 @@
 		<option value='9'>9</option>
 	</datalist>
 	<p>
-	<label for='valveTimeValue'>Таймаут авто-отключения нагрева:</label>
+	<label for='autoOffTimeValue'>Таймаут авто-отключения нагрева:</label>
 	<input type='range' id='autoOffTimeValue' min='10' max='90' step='10' value='%P4%' list='autoOffTimeOptions' oninput='redraw(this,"selectedAutoOffTValue")'>
 	<span id='selectedAutoOffTValue'>%P4%</span><span> минут</span></p>
 	<datalist id='autoOffTimeOptions'>
@@ -134,26 +151,43 @@
   <div id='modal-box-2-delete'>
 	<h2>Удаление WiFi-сети</h2>
     <p>
-	<label for='modal_AP_SSID_2_delete'>Удалить сеть</label>
+	<label>Удалить сеть</label>
 	<span id='modal_AP_SSID_2_delete'></span>?
 	</p>
     <button id='ok-modal-btn-2-delete'>OK</button>
 	<button id='cancel-modal-btn-2-delete'>Отмена</button>
   </div>  
 </dialog>
+<dialog id='softReset'>
+  <div id='modal-box-2-reset'>
+	<h2>Сброс параметров</h2>
+    <p>
+	<label>Сбросить параметры на значения по умолчанию?</label>
+	</p>
+    <button id='ok-modal-btn-2-reset'>OK</button>
+	<button id='cancel-modal-btn-2-reset'>Отмена</button>
+  </div>  
+</dialog>
+</div>
 	<script>
 const modal = document.getElementById('editWiFi');
 const modal2delete = document.getElementById('deleteWiFi');
+const modal2reset = document.getElementById('softReset');
+const resetLabel = modal2reset.querySelector('label');
 const modalBox = document.getElementById('modal-box');
 const modalBox2delete = document.getElementById('modal-box-2-delete');
+const modalBox2reset = document.getElementById('modal-box-2-reset');
 const WiFiul = document.getElementById('knownNetworks')
-const showModalBtn = document.getElementById('addWiFi');
 const choice = WiFiul.querySelectorAll('li');
 const spans = WiFiul.querySelectorAll('li > span');
+const showModalBtn = document.getElementById('addWiFi');
+const softResetBtn = document.getElementById('softResetBtn');
 const closeModalBtnOK = document.getElementById('ok-modal-btn');
 const closeModalBtnOK2delete = document.getElementById('ok-modal-btn-2-delete');
+const closeModalBtnOK2reset = document.getElementById('ok-modal-btn-2-reset');
 const closeModalBtnCancel = document.getElementById('cancel-modal-btn');
 const closeModalBtnCancel2delete = document.getElementById('cancel-modal-btn-2-delete');
+const closeModalBtnCancel2reset = document.getElementById('cancel-modal-btn-2-reset');
 let isModalOpen = false;
 
 function adjustControls() {
@@ -185,6 +219,12 @@ function adjustControls() {
 		isModalOpen = true;
 		e.stopPropagation();
 	});	
+
+	softResetBtn.addEventListener('click', (e) => {
+		modal2reset.showModal();
+		isModalOpen = true;
+		e.stopPropagation();
+	});
 	
 	closeModalBtnOK.addEventListener('click', () => {
 		var str='/updateWiFi?p1='+document.getElementById('modal_AP_SSID').value.trim()+'&p2='+document.getElementById('modal_AP_Password').value.trim();
@@ -220,6 +260,25 @@ function adjustControls() {
 		e.stopPropagation();
 	});
 	
+	closeModalBtnOK2reset.addEventListener('click', () => {
+		var xhr = new XMLHttpRequest();
+		xhr.open('GET', '/softreset', false);
+		try {
+			xhr.send();
+			if (xhr.status != 200) alert(`Ошибка ${xhr.status}: ${xhr.statusText}`);
+			else window.location.reload();
+		}
+		catch(err) {
+			alert('Запрос не удался');
+			return;
+		}
+		closeModalBtnOK2reset.style.display = 'none';
+		softResetBtn.remove();
+		resetLabel.innerHTML = 'Сброс параметров успешно произведён. Дождитесь перезагрузки устройства и обновите страницу.<br><br>Возможно, придётся изменить параметры WiFi-подключения для вашего устройства<br>(значения по умолчанию описаны в документации)';
+		closeModalBtnCancel2reset.innerHTML = 'Понятно';
+		e.stopPropagation();
+	});
+	
 	closeModalBtnCancel.addEventListener('click', () => {
 		modal.close();
 		isModalOpen = false;
@@ -231,11 +290,21 @@ function adjustControls() {
 		isModalOpen = false;
 		e.stopPropagation();
 	});
-	
+
+	closeModalBtnCancel2reset.addEventListener('click', () => {
+		if(closeModalBtnCancel2reset.innerHTML != 'Понятно') {
+			modal2reset.close();
+			isModalOpen = false;
+			e.stopPropagation();
+		}
+		else window.location.reload();
+	});
+
 	document.addEventListener('click', (e) => {
 		if (isModalOpen) {
 			if (!modalBox.contains(e.target)) modal.close();
 			if (!modalBox2delete.contains(e.target)) modal2delete.close();
+			if (!modalBox2reset.contains(e.target)) modal2reset.close();
 			isModalOpen = false;
 		}
 	});
@@ -262,6 +331,7 @@ function sendData() {
   else str+='&p6=0';
   str+='&p7='+document.getElementById('AP_SSID').value.trim();
   str+='&p8='+document.getElementById('AP_Password').value.trim();
+  str+='&p9='+document.getElementById('preemptiveWeightValue').value;
   var xhr = new XMLHttpRequest();
   xhr.open('GET', str, true);
   xhr.send();

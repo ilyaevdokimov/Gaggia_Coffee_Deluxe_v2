@@ -4,7 +4,7 @@ body{margin:0}
 details{overflow:hidden;background:#00a6ed;color:#fff}
 summary{padding:10px 0;font-size:2.4rem}
 details ul{max-width:310px;margin:12px auto;text-align:left}
-details button{padding:1rem;margin-bottom:1.4rem;background:#00a6ed;font-size:1.4rem;color:#00c6ed;border-color:#00c6ed}
+details button{width:11rem;padding:1rem;margin-bottom:1.4rem;background:#00a6ed;font-size:1.4rem;color:#00c6ed;border-color:#00c6ed}
 h1{margin:0;padding:0 0 24px 0;font-size:2.4rem;font-weight:normal}
 .content{padding:20px}
 .card{box-shadow:var(--shdw);font-size:2.4rem}

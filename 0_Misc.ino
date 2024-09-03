@@ -10,8 +10,8 @@ void doHardReset() {
   if (preferences.isKey("P6")) preferences.putString("P6", "0");
   if (preferences.isKey("P7")) preferences.putString("P7", String(SOFT_AP_SSID));
   if (preferences.isKey("P8")) preferences.putString("P8", String(SOFT_AP_PASSWORD));
+  if (preferences.isKey("P9")) preferences.putString("P9", String(PREEMPTIVE_WEIGHT));
   preferences.end(); // Закрываем настройки
-  delay(500); // Да, это delay. Ничего страшного: вещь разовая, потерпим
 }
 
 // Функция проверки состояния
@@ -122,15 +122,17 @@ void changeState() {
   digitalWrite(PUMP, LOW); // Переход из одного состояния в другое всегда должен происходить через отключение помпы. Новый режим включит её при необходимости
 
   // Проверяем, был ли пролив боевым
-  isLivePass = passTime > 13 && waterStreamValue > 0 && passTimeInMillis / waterStreamValue > PASS_VALVE_LIVE_TRESHOLD;
+  bool isLivePass = passTime > 13 && waterStreamValue > 0 && passTimeInMillis / waterStreamValue > PASS_VALVE_LIVE_TRESHOLD; // Индикатор боевого пролива
 
   if (currentState == Pass && isLivePass) { // Если пролив завершён (newState ведь не равен currentState), и он был боевым
-    digitalWrite(PASS_VALVE, HIGH); // Открываем клапан. А закроет его обработчик прерывания тайммера
-    timerAlarm(flashTimer, passValveOpenTime * 1000, false, 0); // Устанавливаем время однократного срабатывания таймера сброса давления
-    timerStop(flashTimer);
-    timerWrite(flashTimer, 0); // Сбрасываем счётчик
-    timerRestart(flashTimer); // Перезапускаем таймер сброса давления
-    timerStart(flashTimer); // Запускаем таймер
+    if (passValveOpenTime > 0) {
+      digitalWrite(PASS_VALVE, HIGH); // Открываем клапан. Закроет его обработчик прерывания тайммера
+      timerAlarm(flushTimer, passValveOpenTime * 1000, false, 0); // Устанавливаем время однократного срабатывания таймера сброса давления
+      timerStop(flushTimer);
+      timerWrite(flushTimer, 0); // Сбрасываем счётчик
+      timerRestart(flushTimer); // Перезапускаем таймер сброса давления
+      timerStart(flushTimer); // Запускаем таймер
+    }
   }
   // Пролив проверен, теперь можно запомнить новое состояние:
   currentState = newState;
@@ -190,6 +192,20 @@ void updateControlPanel() {
   waterLevel = getWaterLevel(loopCounter++); // Актуализируем уровень воды в танкере (это занимает порядка 15 мс):
   if (loopCounter >= WATER_LEVEL_BUFFER_SIZE) loopCounter = 0; // Сбрасываем счётчик при переполнении
   currentWeight = notMyRound(scale.get_units(1)); // Вес напитка
+
+  // Проверка достижения целевого веса напитка:
+  bool targetWeightReached = false;
+  if (currentState == Pass && passTime > 13 && waterStreamValue > 0 && passTimeInMillis / waterStreamValue > PASS_VALVE_LIVE_TRESHOLD) {
+    if (runonceTargetWeight >= 18 && runonceTargetWeight <= 60) targetWeightReached = runonceTargetWeight - currentWeight <= preemptiveWeight;
+    else if (targetWeight >= 18 && targetWeight <= 60) targetWeightReached = targetWeight - currentWeight <= preemptiveWeight;
+  }
+
+  if (targetWeightReached) { // Должен сработать 1 раз, т.к. режим Пролива сменится на Ожидание
+    newState = Wait;
+    runonceTargetWeight = 0; // Сбрасываем одноразовый Целевой вес
+    changeState();
+  }
+
   // Сигнализируем о попадании температуры в заданный диапазон при нахождении:
   uint16_t targetTemperature = (boilerTemperature + groupTemperature) / 2; // Усреднённая температура бойлера и группы
   // в режиме пара или бустера
@@ -251,6 +267,10 @@ void makeSendString(String& s) { // Формирование строки для
   s += String(currentState == Pass || currentState == Drain); // Должна ли быть нажата ли экранная кнопка пролива 10
   s += "¿";
   s += String(currentState == Steam || currentState == Booster); // Должна ли быть нажата ли экранная кнопка пара 11
+  s += "¿";
+  if (runonceTargetWeight >= 18 && runonceTargetWeight <= 60) s += String(runonceTargetWeight, 1); // Целевая масса однократного пролива исходя из веса закладки 12
+  else if (targetWeight >= 18 && targetWeight <= 60) s += String(targetWeight, 1); // Целевая масса пролива исходя из соответствующего параметра 12
+  else s += "0"; // Целевая масса не установлена, остановка пролива производится вручную 12
   s.trim();
 }
 
@@ -294,6 +314,7 @@ String processor(const String& var) {
   if (var == "P6") return P6 == "0" ? "" : "checked";
   if (var == "P7") return P7;
   if (var == "P8") return "12345678"; // ну не отправлять же на страницу настоящий пароль...
+  if (var == "P9") return P9;
   if (var == "WiFiNetworks") {
     String htmlResult = ""; // Итоговая HTML-разметка
     preferences.begin("knownNetworks", false);
@@ -359,6 +380,7 @@ void initParams() { // Актуализируем глобальные пере�
   if (preferences.isKey("P6")) P6 = preferences.getString("P6");
   if (preferences.isKey("P7")) P7 = preferences.getString("P7");
   if (preferences.isKey("P8")) P8 = preferences.getString("P8");
+  if (preferences.isKey("P9")) P9 = preferences.getString("P9");
   preferences.end(); // Закрываем настройки
   // Теперь в переменных P1...Pn либо текстовые значения параметров, хранящиеся во флеш-памяти, либо значения зашитые в прошивке
 }
@@ -378,7 +400,7 @@ void updateNativeParameterValues() {
   }
   if (isParamterChanges[2] == true) { // Продолжительность открытия клапана сброса давления
     passValveOpenTime = P3.toInt();
-    if (passValveOpenTime == 0) passValveOpenTime = PASS_VALVE_OPEN_TIME;
+    if (P3 != "0" && passValveOpenTime == 0) passValveOpenTime = PASS_VALVE_OPEN_TIME;
     isParamterChanges[2] == false;
   }
   if (isParamterChanges[3] == true) { // Таймаут автоотключения
@@ -405,5 +427,10 @@ void updateNativeParameterValues() {
     SoftAP_password = P8;
     if (SoftAP_password == "") SoftAP_password = SOFT_AP_PASSWORD;
     isParamterChanges[7] == false;
+  }
+  if (isParamterChanges[8] == true) { // Разница с Целевой массой, при достижении которой нужно выключать пролив
+    preemptiveWeight = P9.toInt();
+    if (P9 != "0" && preemptiveWeight == 0) preemptiveWeight = PREEMPTIVE_WEIGHT;
+    isParamterChanges[8] == false;
   }
 }

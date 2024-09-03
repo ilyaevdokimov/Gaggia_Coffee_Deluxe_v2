@@ -4,7 +4,8 @@
 	<meta charset='UTF-8'>
 	<title>Кофеварка SSE - Панель управления</title>
 	<meta name='viewport' content='width=device-width,initial-scale=1'>
-	<link rel='stylesheet' href='s1.css' />
+	<link rel='stylesheet' href='s1.css'>
+	<link rel="icon" type="image/svg+xml" href="favicon.svg">
 </head>
 <body>
 	<details>
@@ -40,7 +41,7 @@
 				<span id='temp1'>...</span>/<span id='temp2'>...</span>
 			</div>
 			<div class='card'>
-				<p>Пролив</p>
+				<p id='useAsStowageDescription'>Пролив</p>
 				<label class='switch'>
 					<input type='checkbox' onchange='toggleCheckbox(this)' id='btnLivePass'>
 					<span class='slider'></span>
@@ -96,6 +97,7 @@ if (!!window.EventSource) {
   setVal('tcB', res[7]);
   setVal('temp1', res[7]);
   setVal('diag', res[8]);
+  document.getElementById('useAsStowageDescription').innerHTML = res[12] >= 18 && res[12] <= 60 ? `Автопролив до ${res[12]} г` : 'Пролив';
   setVal('weight', res[9]);
   setVal('weight1', res[9]);
   syncCheckboxState('btnLivePass',res[10]);
@@ -117,24 +119,10 @@ function syncCheckboxState(id, newState) {
 		if(element.id == 'btnSteam') document.getElementById('btnLivePass').disabled = newBoolState;
 	}
 }
-function playFrequency(frequency) {
-	var audioContext = new AudioContext();
-    var sampleRate = audioContext.sampleRate;
-    var buffer  = audioContext.createBuffer(1, 0.1*sampleRate, sampleRate);
-    var channelData = buffer.getChannelData(0);
-    for (var i = 0; i < sampleRate; i++) {
-      channelData[i]=Math.sin(2*Math.PI*frequency*i/(sampleRate));
-    }
-    var source = audioContext.createBufferSource();
-    source.buffer = buffer;
-    source.connect(audioContext.destination);
-    source.start(0);
-}
 
 function toggleCheckbox(element) {
   var xhr = new XMLHttpRequest();
   xhr.open('GET', '/updatedata?output='+element.id+'&state='+element.checked, false);
-  //playFrequency(1800);
   try {
 	xhr.send();
 	if (xhr.status != 200) alert(`Ошибка ${xhr.status}: ${xhr.statusText}`);
