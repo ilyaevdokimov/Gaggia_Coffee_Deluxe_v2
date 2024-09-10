@@ -2,7 +2,7 @@ void HeaterControl(void *pvParameters) { // Задача управления в
   // Вспомогательные переменные ПИД-регулятора:
   uint64_t timeAtTemp;
   bool relayControl;
-  AutoPIDRelay espressoPID(&temperature, &setTemp, &relayControl, 5000, .53, .0003, 0); // Переменные temperature и steamTemperature являются глобальными, т.к. используются в других местах
+  AutoPIDRelay espressoPID(&temperature, &setTemp, &relayControl, 5000, .53, .0003, 0);
   espressoPID.setBangBang(2); // Ускорение нагрева до +- 2 градусов
   espressoPID.setTimeStep(PULSEWIDTH); // Задержка регулирования
 
