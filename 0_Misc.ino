@@ -186,10 +186,10 @@ void updateControlPanel() {
   else passTime = passTimeInMillis / 1000; // Если помпа работает, инкриментируем время пролива
 
   // Подготавливаем и отсылаем страничке значения с датчиков:
-  //temperature = getNTCtemperature(); // Обновляем значение глобальной переменной, чтобы ПИД мог брать оттуда актуальные данные
+  temperature = kTCboiler.getTemp(); // Обновляем значение глобальной переменной, чтобы ПИД мог брать оттуда актуальные данные getNTCtemperature()
   boilerTemperature = kTCboiler.getTempInt(); // Температура бойлера, отображаемая в интерфейсе
-  temperature = kTCboiler.getTemp(); // Обновляем значение глобальной переменной, чтобы ПИД мог брать оттуда актуальные данные
   groupTemperature = kTCgroup.getTempInt(); // Температура группы
+  if (rtd.isConversionComplete()) PT100temperature = rtd.getTemperature(RNOMINAL, RREF); // Актуализация  температуры PT100-термистора в случае его готовности
   waterLevel = getWaterLevel(loopCounter++); // Актуализируем уровень воды в танкере (это занимает порядка 15 мс):
   if (loopCounter >= WATER_LEVEL_BUFFER_SIZE) loopCounter = 0; // Сбрасываем счётчик при переполнении
   currentWeight = notMyRound(scale.get_units(1)); // Вес напитка
@@ -240,7 +240,7 @@ uint8_t getWaterLevel(uint8_t counter) {
 
 // Подпрограмма формирования пакета данных SSE
 void makeSendString(String& s) { // Формирование строки для объекта AsyncEventSource
-  s += String(getNTCtemperature(), 1); // Темпрература с датчика регулирования (сейчас это NTC-термистор) 0
+  s += String(PT100temperature, 1) + " (" + String(getNTCtemperature(), 1) + ")"; // Темпрература PT100-термистора 0
   s += "¿";
   s += groupTemperature; // Температура группы (с термопары) 1
   s += "¿";
@@ -260,7 +260,7 @@ void makeSendString(String& s) { // Формирование строки для
   s += "¿";
   s += boilerTemperature; // Температура бойлера по термопаре 7
   s += "¿";
-  String diagnosticString = "..."; // String(deugValueChangesMillis);
+  String diagnosticString = "..."; // String(debugValueChangedTime)
   s += diagnosticString; // Строка диагностики 8
   s += "¿";
   s += String(currentWeight, 1); // Вес напитка 9
@@ -368,36 +368,6 @@ double getNTCtemperature() {
   readingMV = 1.0 / readingMV; // инвертируем
   readingMV -= 273.15; // конвертируем в градусы по Цельсию
   return (double)readingMV;
-}
-
-void PT100_loop() { // Запускает измерение на PT100-термисторе и считывает данные по готовности
-  SPISettings spiSettings(1000000, MSBFIRST, SPI_MODE1); // настройки SPI
-  if (!isPI100measurementHasBegun) { // инициируем начало измерений
-    SPI.beginTransaction(spiSettings); // начинаем передачу по SPI
-    digitalWrite(PT100_CS_PIN, LOW); // активируем вывод выбора ведомого
-    SPI.transfer(0x80); // передаём адрес записи конфигурационного регистра
-    SPI.transfer(0xA2); // передаём значение в регистр (сделать однократное измерение, 2- или 4-проводная схема)
-    digitalWrite(PT100_CS_PIN, HIGH); // деактивируем вывод выбора ведомого
-    SPI.endTransaction(); // заканчиваем передачу по SPI
-    isPI100measurementHasBegun = true; // устанавливаем флаг начала измерения, чтобы при следующем вызове попасть в ветку проверки готовности данных
-  }
-  else {
-    if (digitalRead(PT10_DRDY_PIN) == 0) { // когда данные готовы, MAX31865 выставляет DRDY в "0"
-      SPI.beginTransaction(spiSettings);
-      digitalWrite(PT100_CS_PIN, LOW);
-      SPI.transfer(0x00); // передаём адрес чтения конфигурационного регистра
-      int inByte[8]; // массив для хранения значений 8-ми регистров MAX31865
-      for (int i = 0; i < 8; i++) { // читаем 8 байт из MAX31865
-        inByte[i] = SPI.transfer(0x00);
-      }
-      digitalWrite(PT100_CS_PIN, HIGH);
-      SPI.endTransaction();
-      int rtd = word(inByte[1], inByte[2]); // собираем показания термодатчика из двух байт
-      float rrtd = rtd * RREF / 32768 / 2; // сопротивление термодатчика
-      PT100temperature = (rrtd - RNOMINAL) / ALPHA; // перевод сопротивления в температуру с помощью коэффициента α
-      isPI100measurementHasBegun = false; // Сбрасываем флаг начала измерения: в следующем вызове можно будет снова начинать измерение
-    }
-  }
 }
 
 // Подпрограмма инициализации текстового представления параметров значениями, сохранёнными пользователем во флеш-памяти контроллера
