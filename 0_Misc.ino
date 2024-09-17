@@ -265,9 +265,9 @@ void makeSendString(String& s) { // Формирование строки для
   s += "¿";
   s += String(currentWeight, 1); // Вес напитка 9
   s += "¿";
-  s += String(currentState == Pass || currentState == Drain); // Должна ли быть нажата ли экранная кнопка пролива 10
+  s += String(currentState == Pass || currentState == Drain); // Должна ли быть нажата экранная кнопка пролива 10
   s += "¿";
-  s += String(currentState == Steam || currentState == Booster); // Должна ли быть нажата ли экранная кнопка пара 11
+  s += String(currentState == Steam || currentState == Booster); // Должна ли быть нажата экранная кнопка пара 11
   s += "¿";
   if (runonceTargetWeight >= 18 && runonceTargetWeight <= 60) s += String(runonceTargetWeight, 1); // Целевая масса однократного пролива исходя из веса закладки 12
   else if (targetWeight >= 18 && targetWeight <= 60) s += String(targetWeight, 1); // Целевая масса пролива исходя из соответствующего параметра 12
@@ -281,7 +281,7 @@ float notMyRound(float var) {
   return (float)value / 10;
 }
 
-// Подпрограмм управления подсветкой танкера и рабочей зоны
+// Подпрограмма управления подсветкой танкера и рабочей зоны
 void lightIndication() { // Используем аппаратный фэйдинг
   if (currentState != Diagnostics) { // В режиме диагностики автоматическое управление светом должно быть выключено, иначе мы ничего не сможем диагностировать
     if (isEspressoHeatingOn) { // Если нагрев включен,
